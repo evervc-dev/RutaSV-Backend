@@ -388,5 +388,5 @@ dotnet_naming_style.s_camelcase.word_separator =
 dotnet_naming_style.s_camelcase.capitalization = camel_case
 
 [*.cs]
-# IDE0005: Eliminar directivas 'using' (imports) innecesarias
+# Eliminar directivas 'using' (imports) innecesarias
 dotnet_diagnostic.IDE0005.severity = warning
