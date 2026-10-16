@@ -1,0 +1,82 @@
+name: Backend CI/CD (.NET 10)
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # CI (Linter, Compilación, Seguridad y Tests xUnit)
+  ci-build-and-test:
+    name: Linter, Build & xUnit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descarga de codigo del repositorio (Checkout)
+        uses: actions/checkout@v4
+
+      - name: Instalacion de .NET 10 SDK con cache de NuGet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          cache: true
+
+      - name: Restaurar paquetes NuGet desde Directory.Packages.props
+        run: dotnet restore RutaSV.sln
+
+      - name: Ejecucion de Linter
+        run: dotnet format RutaSV.sln --verify-no-changes --verbosity diagnostic
+
+      - name: Compilar Solución en modo Release
+        run: dotnet build RutaSV.sln --configuration Release --no-restore -warnaserror
+
+      - name: Auditar vulnerabilidades en paquetes NuGet
+        run: dotnet list RutaSV.sln package --vulnerable --include-transitive
+
+      - name: Ejecucion de Pruebas Unitarias e Integración con xUnit
+        run: dotnet test RutaSV.sln --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
+
+  # CD (Construcción de Imagen Docker y GitHub Packages)
+  cd-publish-package:
+    name: Build & Push Docker Image to GHCR
+    needs: ci-build-and-test
+    # Solo se ejecuta si el Job de CI fue exitoso y el push fue hacia la rama 'main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # Otorga permiso al GITHUB_TOKEN para subir la imagen a ghcr.io
+
+    steps:
+      - name: Descarga de código del repositorio
+        uses: actions/checkout@v4
+
+      - name: Iniciar sesión en GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generar tags y metadatos para la imagen Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=sha-
+
+      - name: Construir y publicar imagen Docker en GitHub Packages
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
