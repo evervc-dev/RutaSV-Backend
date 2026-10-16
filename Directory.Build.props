@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- Activa los analizadores de calidad de código de .NET -->
+    <AnalysisLevel>latest</AnalysisLevel>
+    <!-- Obliga a que el compilador verifique las reglas del .editorconfig (ej. imports innecesarios) -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+</Project>

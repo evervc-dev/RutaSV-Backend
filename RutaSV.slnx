@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/RutaSV.Api/RutaSV.Api.csproj" />
+    <Project Path="src/RutaSV.Application/RutaSV.Application.csproj" />
+    <Project Path="src/RutaSV.Domain/RutaSV.Domain.csproj" />
+    <Project Path="src/RutaSV.Infrastructure/RutaSV.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/RutaSV.IntegrationTests/RutaSV.IntegrationTests.csproj" />
+    <Project Path="tests/RutaSV.UnitTests/RutaSV.UnitTests.csproj" />
+  </Folder>
+</Solution>

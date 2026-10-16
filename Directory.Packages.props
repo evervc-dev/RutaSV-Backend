@@ -1,0 +1,43 @@
+<Project>
+  <PropertyGroup>
+    <!-- Habilita la gestión centralizada de paquetes en toda la solución -->
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- CAPA APPLICATION -->
+    <!-- Validaciones de DTOs y reglas de entrada -->
+    <PackageVersion Include="FluentValidation" Version="11.11.0" />
+    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
+    <!-- Inyección de dependencias -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+
+    <!-- CAPA INFRASTRUCTURE -->
+    <!-- Entity Framework Core para PostgreSQL (Npgsql) -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.0" />
+    <!-- Almacenamiento de imágenes compatible con S3 (MinIO) -->
+    <PackageVersion Include="Minio" Version="6.0.4" />
+    <!-- Envío de correos electrónicos de confirmación (SMTP) -->
+    <PackageVersion Include="MailKit" Version="4.10.0" />
+    <!-- Autenticación y generación de Tokens JWT -->
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+    <PackageVersion Include="BCrypt.Net-Next" Version="4.0.3" />
+
+    <!--  CAPA API  -->
+    <!-- Diseño de migraciones EF Core y documentación OpenAPI/Scalar -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.0.14" />
+
+    <!-- CAPA TESTS (xUnit) -->
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.0.1" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <PackageVersion Include="Moq" Version="4.20.72" />
+    <PackageVersion Include="FluentAssertions" Version="8.0.1" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.0" />
+  </ItemGroup>
+</Project>
