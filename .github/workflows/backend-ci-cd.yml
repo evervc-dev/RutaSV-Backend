@@ -28,19 +28,19 @@ jobs:
           cache: false
 
       - name: Restaurar paquetes NuGet desde Directory.Packages.props
-        run: dotnet restore RutaSV.sln
+        run: dotnet restore RutaSV.slnx
 
       - name: Ejecucion de Linter
-        run: dotnet format RutaSV.sln --verify-no-changes --verbosity diagnostic
+        run: dotnet format RutaSV.slnx --verify-no-changes --verbosity diagnostic
 
       - name: Compilar Solución en modo Release
-        run: dotnet build RutaSV.sln --configuration Release --no-restore -warnaserror
+        run: dotnet build RutaSV.slnx --configuration Release --no-restore -warnaserror
 
       - name: Auditar vulnerabilidades en paquetes NuGet
-        run: dotnet list RutaSV.sln package --vulnerable --include-transitive
+        run: dotnet list RutaSV.slnx package --vulnerable --include-transitive
 
       - name: Ejecucion de Pruebas Unitarias e Integración con xUnit
-        run: dotnet test RutaSV.sln --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
+        run: dotnet test RutaSV.slnx --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
 
   # CD (Construcción de Imagen Docker y GitHub Packages)
   cd-publish-package:

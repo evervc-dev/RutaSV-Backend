@@ -3,7 +3,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copia archivos de configuración global y solución
-COPY ["RutaSV.sln", "./"]
+COPY ["RutaSV.slnx", "./"]
 COPY ["Directory.Build.props", "./"]
 COPY ["Directory.Packages.props", "./"]
 COPY [".editorconfig", "./"]
@@ -17,7 +17,7 @@ COPY ["tests/RutaSV.UnitTests/RutaSV.UnitTests.csproj", "tests/RutaSV.UnitTests/
 COPY ["tests/RutaSV.IntegrationTests/RutaSV.IntegrationTests.csproj", "tests/RutaSV.IntegrationTests/"]
 
 # Descarga e instala todos los paquetes NuGet
-RUN dotnet restore "RutaSV.sln"
+RUN dotnet restore "RutaSV.slnx"
 
 # Copia el resto del código fuente y publica la Web API en modo Release
 COPY . .
