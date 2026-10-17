@@ -21,11 +21,19 @@ jobs:
       - name: Descarga de codigo del repositorio (Checkout)
         uses: actions/checkout@v4
 
-      - name: Instalacion de .NET 10 SDK sin cache de NuGet
+      - name: Instalacion de .NET 10 SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
           cache: false
+
+      - name: Cache de paquetes NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
 
       - name: Restaurar paquetes NuGet desde Directory.Packages.props
         run: dotnet restore RutaSV.slnx
