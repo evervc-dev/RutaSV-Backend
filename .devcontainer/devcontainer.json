@@ -1,0 +1,22 @@
+{
+  "name": "RutaSV Backend DevContainer",
+  "dockerComposeFile": [
+    "../docker-compose.dev.yml"
+  ],
+  "service": "rutasv-api",
+  "workspaceFolder": "/app",
+  "shutdownAction": "stopCompose",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "ms-dotnettools.csharp",
+        "humao.rest-client"
+      ],
+      "settings": {
+        "dotnet.defaultSolution": "RutaSV.slnx"
+      }
+    }
+  },
+  "remoteUser": "root"
+}
