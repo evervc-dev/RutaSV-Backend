@@ -1,4 +1,4 @@
-namespace RutaSV.Domain.Identity;
+namespace RutaSV.Domain.Identity.Enum;
 
 public enum AuthProvider
 {
