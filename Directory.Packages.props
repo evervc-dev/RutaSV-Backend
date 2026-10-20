@@ -20,10 +20,11 @@
     <!-- Almacenamiento de imágenes compatible con S3 (MinIO) -->
     <PackageVersion Include="Minio" Version="6.0.4" />
     <!-- Envío de correos electrónicos de confirmación (SMTP) -->
-    <PackageVersion Include="MailKit" Version="4.10.0" />
+    <PackageVersion Include="MailKit" Version="4.13.0" />
     <!-- Autenticación y generación de Tokens JWT -->
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
     <PackageVersion Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageVersion Include="Google.Apis.Auth" Version="1.69.0" />
 
     <!--  CAPA API  -->
     <!-- Diseño de migraciones EF Core y documentación OpenAPI/Scalar -->
