@@ -1,4 +1,6 @@
-namespace RutaSV.Domain.Identity;
+using RutaSV.Domain.Identity.Enum;
+
+namespace RutaSV.Domain.Identity.Models;
 
 public class UserToken
 {
