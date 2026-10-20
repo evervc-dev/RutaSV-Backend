@@ -1,4 +1,6 @@
-namespace RutaSV.Application.Identity;
+using RutaSV.Application.Identity.DTO;
+
+namespace RutaSV.Application.Identity.Service;
 
 public interface IGoogleAuthService
 {

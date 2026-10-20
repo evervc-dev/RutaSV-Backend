@@ -1,4 +1,4 @@
-namespace RutaSV.Application.Identity;
+namespace RutaSV.Application.Identity.Service;
 
 public interface IEmailService
 {

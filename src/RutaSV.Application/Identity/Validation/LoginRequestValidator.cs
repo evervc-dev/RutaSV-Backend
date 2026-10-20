@@ -1,5 +1,7 @@
 using FluentValidation;
 
+using RutaSV.Application.Identity.DTO;
+
 namespace RutaSV.Application.Identity;
 
 public sealed class LoginRequestValidator : AbstractValidator<LoginRequest>

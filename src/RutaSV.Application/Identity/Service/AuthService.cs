@@ -5,7 +5,10 @@ using FluentValidation;
 
 using RutaSV.Application.Identity.DTO;
 using RutaSV.Application.Identity.Repository;
-using RutaSV.Domain.Identity;
+using RutaSV.Application.Identity.Security;
+using RutaSV.Domain.Identity.Enum;
+using RutaSV.Domain.Identity.Exception;
+using RutaSV.Domain.Identity.Model;
 
 namespace RutaSV.Application.Identity.Service;
 
@@ -27,17 +30,22 @@ public sealed class AuthService(
         // Valida la solicitud de registro utilizando FluentValidation y lanza una excepción si hay errores de validación
         await registerValidator.ValidateAndThrowAsync(request, cancellationToken);
 
+        // Elimina espacios del correo y lo convierte a minúsculas para evitar duplicados
         string normalizedEmail = request.Email.Trim().ToLowerInvariant();
 
+        // Verifica si ya existe un usuario con el mismo correo electrónico
         bool exists = await userRepository.ExistsByEmailAsync(normalizedEmail, cancellationToken);
         if (exists)
         {
+            // Lanza una excepción personalizada si el usuario ya existe
             throw new UserAlreadyExistsException(normalizedEmail);
         }
 
+        // Genera un hash seguro de la contraseña utilizando BCrypt
         string passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
         DateTime now = DateTime.UtcNow;
 
+        // Crea un nuevo objeto User con la información del usuario registrado
         User user = new()
         {
             Id = Guid.NewGuid(),
@@ -54,9 +62,11 @@ public sealed class AuthService(
             UpdatedAt = now
         };
 
+        // Genera un token seguro para la verificación de correo electrónico y su hash
         string rawToken = GenerateSecureToken();
         string tokenHash = ComputeSha256Hash(rawToken);
 
+        // Crea un objeto UserToken para almacenar el token de verificación de correo electrónico
         UserToken verificationToken = new()
         {
             Id = Guid.NewGuid(),
@@ -67,10 +77,12 @@ public sealed class AuthService(
             CreatedAt = now
         };
 
+        // Agrega el usuario y el token de verificación a los repositorios y guarda los cambios en la base de datos
         await userRepository.AddAsync(user, cancellationToken);
         await userTokenRepository.AddAsync(verificationToken, cancellationToken);
         await userRepository.SaveChangesAsync(cancellationToken);
 
+        // Envía un correo electrónico de verificación al usuario con el token generado
         await emailService.SendVerificationEmailAsync(
             user.Email,
             user.FirstName,
@@ -236,15 +248,25 @@ public sealed class AuthService(
             jwt);
     }
 
+    /// <summary>
+    /// Genera un token seguro utilizando RandomNumberGenerator y lo convierte a una cadena hexadecimal en minúsculas.
+    /// </summary>
+    /// <returns>Retorna el token seguro en formato hexadecimal en minúsculas.</returns>
     private static string GenerateSecureToken()
     {
-        byte[] bytes = RandomNumberGenerator.GetBytes(32);
-        return Convert.ToHexStringLower(bytes);
+        byte[] bytes = RandomNumberGenerator.GetBytes(32); // Genera 32 bytes de datos aleatorios
+        return Convert.ToHexStringLower(bytes); // Convierte los bytes a una cadena hexadecimal en minúsculas
     }
 
+    /// <summary>
+    /// Calcula el hash SHA-256 de un valor de entrada y lo convierte a una cadena hexadecimal en minúsculas.
+    /// </summary>
+    /// <param name="rawValue">El valor de entrada para calcular el hash.</param>
+    /// <returns>Retorna el hash SHA-256 en formato hexadecimal en minúsculas.</returns>
     private static string ComputeSha256Hash(string rawValue)
     {
+        // Calcula el hash SHA-256 del valor de entrada
         byte[] bytes = SHA256.HashData(Encoding.UTF8.GetBytes(rawValue));
-        return Convert.ToHexStringLower(bytes);
+        return Convert.ToHexStringLower(bytes); // Convierte los bytes del hash a una cadena hexadecimal en minúsculas y la retorna
     }
 }

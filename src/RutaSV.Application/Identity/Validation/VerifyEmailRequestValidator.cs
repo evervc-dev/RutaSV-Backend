@@ -1,6 +1,8 @@
 using FluentValidation;
 
-namespace RutaSV.Application.Identity;
+using RutaSV.Application.Identity.DTO;
+
+namespace RutaSV.Application.Identity.Validation;
 
 public sealed class VerifyEmailRequestValidator : AbstractValidator<VerifyEmailRequest>
 {

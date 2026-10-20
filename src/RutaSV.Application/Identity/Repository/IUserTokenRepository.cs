@@ -1,4 +1,5 @@
-using RutaSV.Domain.Identity;
+using RutaSV.Domain.Identity.Enum;
+using RutaSV.Domain.Identity.Model;
 
 namespace RutaSV.Application.Identity;
 
