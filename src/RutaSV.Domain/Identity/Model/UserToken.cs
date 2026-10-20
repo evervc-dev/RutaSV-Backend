@@ -1,6 +1,6 @@
 using RutaSV.Domain.Identity.Enum;
 
-namespace RutaSV.Domain.Identity.Models;
+namespace RutaSV.Domain.Identity.Model;
 
 public class UserToken
 {
