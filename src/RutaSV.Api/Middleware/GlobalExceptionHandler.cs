@@ -2,19 +2,28 @@ using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using RutaSV.Domain.Common;
-using RutaSV.Domain.Identity;
+using RutaSV.Domain.Identity.Exception;
 
 namespace RutaSV.Api.Middleware;
 
 public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
 {
+    /// <summary>
+    /// Intenta manejar la excepción capturada y devuelve un resultado adecuado al cliente.
+    /// </summary>
+    /// <param name="httpContext">Contexto de la solicitud HTTP</param>
+    /// <param name="exception">La excepción capturada</param>
+    /// <param name="cancellationToken">Token de cancelación</param>
+    /// <returns>True si la excepción fue manejada, false en caso contrario</returns>
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
         Exception exception,
         CancellationToken cancellationToken)
     {
+        // Registrar la excepción para fines de diagnóstico
         logger.LogError(exception, "Excepción capturada por GlobalExceptionHandler: {Message}", exception.Message);
 
+        // Determinar el código de estado HTTP y el mensaje de error según el tipo de excepción
         (int statusCode, string title, string detail) = exception switch
         {
             ValidationException => (
@@ -43,6 +52,7 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
                 "Ocurrió un error inesperado al procesar la solicitud.")
         };
 
+        // Crear un objeto ProblemDetails para proporcionar información estructurada sobre el error
         ProblemDetails problemDetails = new()
         {
             Status = statusCode,
@@ -51,6 +61,7 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
             Instance = httpContext.Request.Path
         };
 
+        // Si la excepción es de tipo ValidationException (errores generados en la validación de datos), agregar los errores de validación al objeto ProblemDetails
         if (exception is ValidationException validationException)
         {
             Dictionary<string, string[]> errors = validationException.Errors
@@ -62,6 +73,7 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
             problemDetails.Extensions["errors"] = errors;
         }
 
+        // Establecer el código de estado de la respuesta y escribir los detalles del error en formato JSON
         httpContext.Response.StatusCode = statusCode;
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
 
