@@ -8,6 +8,7 @@ public sealed class GoogleAuthRequestValidator : AbstractValidator<GoogleAuthReq
 {
     public GoogleAuthRequestValidator()
     {
+        // Validación para que el campo IdToken no esté vacío
         RuleFor(x => x.IdToken)
             .NotEmpty().WithMessage("El token de Google (IdToken) es obligatorio.");
     }
