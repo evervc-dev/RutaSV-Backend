@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using RutaSV.Domain.Identity;
+using RutaSV.Domain.Identity.Model;
 
 namespace RutaSV.Infrastructure.Persistence;
 

@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using RutaSV.Domain.Identity;
+
+using RutaSV.Domain.Identity.Enum;
+using RutaSV.Domain.Identity.Model;
 
 namespace RutaSV.Infrastructure.Persistence.Configurations;
 
