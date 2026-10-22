@@ -6,6 +6,10 @@
   "service": "rutasv-api",
   "workspaceFolder": "/app",
   "shutdownAction": "stopCompose",
+  "postCreateCommand": "dotnet tool restore",
+  "remoteEnv": {
+    "PATH": "${containerEnv:PATH}:/root/.dotnet/tools"
+  },
   "customizations": {
     "vscode": {
       "extensions": [
