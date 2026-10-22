@@ -61,6 +61,7 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .HasConversion<string>()
             .HasMaxLength(15)
             .HasDefaultValue(UserRole.VISITANTE)
+            .HasSentinel((UserRole)(-1))
             .IsRequired();
 
         builder.Property(u => u.AuthProvider)
