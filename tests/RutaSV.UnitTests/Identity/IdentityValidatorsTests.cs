@@ -1,6 +1,8 @@
 using FluentAssertions;
 using FluentValidation.Results;
 using RutaSV.Application.Identity;
+using RutaSV.Application.Identity.DTO;
+using RutaSV.Application.Identity.Validation;
 
 namespace RutaSV.UnitTests.Identity;
 

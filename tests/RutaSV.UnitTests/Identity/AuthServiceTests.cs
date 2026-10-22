@@ -5,7 +5,14 @@ using FluentAssertions;
 using FluentValidation;
 using Moq;
 using RutaSV.Application.Identity;
-using RutaSV.Domain.Identity;
+using RutaSV.Application.Identity.DTO;
+using RutaSV.Application.Identity.Repository;
+using RutaSV.Application.Identity.Security;
+using RutaSV.Application.Identity.Service;
+using RutaSV.Application.Identity.Validation;
+using RutaSV.Domain.Identity.Enum;
+using RutaSV.Domain.Identity.Exception;
+using RutaSV.Domain.Identity.Model;
 
 namespace RutaSV.UnitTests.Identity;
 

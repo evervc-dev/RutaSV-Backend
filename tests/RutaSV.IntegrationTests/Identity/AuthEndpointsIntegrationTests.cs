@@ -3,8 +3,9 @@ using System.Net.Http.Json;
 
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
-using RutaSV.Application.Identity;
-using RutaSV.Domain.Identity;
+using RutaSV.Application.Identity.DTO;
+using RutaSV.Domain.Identity.Enum;
+using RutaSV.Domain.Identity.Model;
 
 namespace RutaSV.IntegrationTests.Identity;
 
@@ -28,7 +29,8 @@ public sealed class AuthEndpointsIntegrationTests : IClassFixture<AuthWebApplica
             "RutaSV2026!",
             "Roberto",
             "Cañas",
-            "+50379998888");
+            "+50379998888"
+        );
 
         // Act
         HttpResponseMessage response = await _client.PostAsJsonAsync("/api/auth/register", request);

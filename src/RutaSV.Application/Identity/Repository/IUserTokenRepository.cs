@@ -1,7 +1,7 @@
 using RutaSV.Domain.Identity.Enum;
 using RutaSV.Domain.Identity.Model;
 
-namespace RutaSV.Application.Identity;
+namespace RutaSV.Application.Identity.Repository;
 
 public interface IUserTokenRepository
 {
