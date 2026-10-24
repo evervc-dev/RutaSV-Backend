@@ -10,5 +10,7 @@
     <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <NuGetAuditMode>direct</NuGetAuditMode>
+    <NuGetAuditLevel>high</NuGetAuditLevel>
   </PropertyGroup>
 </Project>

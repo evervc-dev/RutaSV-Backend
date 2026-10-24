@@ -1,26 +1,35 @@
+using RutaSV.Api.Middleware;
+using RutaSV.Application;
+using RutaSV.Infrastructure;
+
 using Scalar.AspNetCore;
 
-var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-var app = builder.Build();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
-// Configure the HTTP request pipeline.
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
+
+WebApplication app = builder.Build();
+
+app.UseExceptionHandler();
+
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
-    app.MapScalarApiReference();
+    _ = app.MapOpenApi();
+    _ = app.MapScalarApiReference();
 }
 
-//app.UseHttpsRedirection();
-
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
 app.Run();
+
+public partial class Program;

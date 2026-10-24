@@ -20,6 +20,8 @@ services:
       - Smtp__Host=mailpit
       - Smtp__Port=${SMTP_PORT:-1025}
       - Jwt__SecretKey=${JWT_SECRET_KEY}
+      - Google__ClientId=${GOOGLE_CLIENT_ID}
+      - Google__ClientSecret=${GOOGLE_CLIENT_SECRET}
     command: dotnet watch run --no-launch-profile --non-interactive
     depends_on:
       postgres:
