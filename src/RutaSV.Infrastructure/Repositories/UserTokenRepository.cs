@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using RutaSV.Application.Identity;
+using RutaSV.Application.Identity.Repository;
 using RutaSV.Domain.Identity.Enum;
 using RutaSV.Domain.Identity.Model;
 using RutaSV.Infrastructure.Persistence;
