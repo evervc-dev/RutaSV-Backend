@@ -15,7 +15,8 @@
       "extensions": [
         "ms-dotnettools.csdevkit",
         "ms-dotnettools.csharp",
-        "humao.rest-client"
+        "humao.rest-client",
+        "cweijan.vscode-database-client2"
       ],
       "settings": {
         "dotnet.defaultSolution": "RutaSV.slnx"
