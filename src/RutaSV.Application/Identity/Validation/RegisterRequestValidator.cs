@@ -30,7 +30,7 @@ public sealed class RegisterRequestValidator : AbstractValidator<RegisterRequest
         RuleFor(x => x.FirstName)
             .NotEmpty().WithMessage("El nombre es obligatorio.")
             .MaximumLength(80).WithMessage("El nombre no puede exceder 80 caracteres.");
-        
+
         // El apellido es obligatorio y con máximo 80 caracteres
         RuleFor(x => x.LastName)
             .NotEmpty().WithMessage("El apellido es obligatorio.")

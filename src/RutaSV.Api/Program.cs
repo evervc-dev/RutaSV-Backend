@@ -1,6 +1,7 @@
 using RutaSV.Api.Middleware;
 using RutaSV.Application;
 using RutaSV.Infrastructure;
+
 using Scalar.AspNetCore;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);

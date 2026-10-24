@@ -1,7 +1,10 @@
 using MailKit.Net.Smtp;
 using MailKit.Security;
+
 using Microsoft.Extensions.Configuration;
+
 using MimeKit;
+
 using RutaSV.Application.Identity.Service;
 
 namespace RutaSV.Infrastructure.Email;

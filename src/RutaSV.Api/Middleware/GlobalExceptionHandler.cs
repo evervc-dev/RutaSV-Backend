@@ -1,6 +1,8 @@
 using FluentValidation;
+
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+
 using RutaSV.Domain.Common;
 using RutaSV.Domain.Identity.Exception;
 

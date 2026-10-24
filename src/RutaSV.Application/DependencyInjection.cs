@@ -1,5 +1,7 @@
 using FluentValidation;
+
 using Microsoft.Extensions.DependencyInjection;
+
 using RutaSV.Application.Identity.Service;
 
 namespace RutaSV.Application;

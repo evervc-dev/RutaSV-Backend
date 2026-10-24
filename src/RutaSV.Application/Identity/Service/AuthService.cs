@@ -95,9 +95,9 @@ public sealed class AuthService(
         return MapToResponse(user, jwt); // Mapea la información del usuario y el token JWT a un objeto AuthResponse y lo retorna
     }
 
-     public async Task<AuthResponse> LoginAsync(
-        LoginRequest request,
-        CancellationToken cancellationToken = default)
+    public async Task<AuthResponse> LoginAsync(
+       LoginRequest request,
+       CancellationToken cancellationToken = default)
     {
         // Valida la solicitud de inicio de sesión utilizando FluentValidation y lanza una excepción si hay errores de validación
         await loginValidator.ValidateAndThrowAsync(request, cancellationToken);
@@ -150,7 +150,7 @@ public sealed class AuthService(
         GoogleUserPayload googleUser = await googleAuthService.ValidateIdTokenAsync(request.IdToken, cancellationToken);
         string normalizedEmail = googleUser.Email.Trim().ToLowerInvariant();
         DateTime now = DateTime.UtcNow; // Obtiene la fecha y hora para registrar el último inicio de sesión y la fecha de actualización del usuario
-        
+
         // Verifica si el usuario ya existe en la base de datos
         User? user = await userRepository.GetByEmailAsync(normalizedEmail, cancellationToken);
 
@@ -210,7 +210,7 @@ public sealed class AuthService(
         }
 
         // Guarda los cambios en la base de datos para reflejar la creación o actualización del usuario
-        await userRepository.SaveChangesAsync(cancellationToken); 
+        await userRepository.SaveChangesAsync(cancellationToken);
 
         string jwt = jwtProvider.GenerateToken(user); // Genera un token JWT para el usuario que ha iniciado sesión correctamente con Google
 
@@ -250,7 +250,7 @@ public sealed class AuthService(
         {
             throw new InvalidTokenException("El usuario asociado al token no existe.");
         }
-        
+
         // Actualiza el token como utilizado, marca el correo electrónico del usuario como verificado y cambia el estado del usuario a ACTIVO si estaba pendiente de verificación
         userToken.UsedAt = now;
         user.EmailVerified = true;
