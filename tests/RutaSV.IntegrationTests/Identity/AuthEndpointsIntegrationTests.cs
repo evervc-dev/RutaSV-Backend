@@ -219,4 +219,39 @@ public sealed class AuthEndpointsIntegrationTests : IClassFixture<AuthWebApplica
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
+
+    [Fact]
+    public async Task CorsPreflight_WhenOriginIsAllowed_ShouldReturnAccessControlAllowOriginHeader()
+    {
+        // Arrange
+        using HttpRequestMessage request = new(HttpMethod.Options, "/api/auth/login");
+        request.Headers.Add("Origin", "http://localhost:5173");
+        request.Headers.Add("Access-Control-Request-Method", "POST");
+        request.Headers.Add("Access-Control-Request-Headers", "content-type,authorization");
+
+        // Act
+        HttpResponseMessage response = await _client.SendAsync(request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        response.Headers.TryGetValues("Access-Control-Allow-Origin", out IEnumerable<string>? values).Should().BeTrue();
+        values.Should().Contain("http://localhost:5173");
+        response.Headers.TryGetValues("Access-Control-Allow-Credentials", out IEnumerable<string>? credentials).Should().BeTrue();
+        credentials.Should().Contain("true");
+    }
+
+    [Fact]
+    public async Task CorsPreflight_WhenOriginIsNotAllowed_ShouldNotReturnAccessControlAllowOriginHeader()
+    {
+        // Arrange
+        using HttpRequestMessage request = new(HttpMethod.Options, "/api/auth/login");
+        request.Headers.Add("Origin", "https://malicious-site.example.com");
+        request.Headers.Add("Access-Control-Request-Method", "POST");
+
+        // Act
+        HttpResponseMessage response = await _client.SendAsync(request);
+
+        // Assert
+        response.Headers.Contains("Access-Control-Allow-Origin").Should().BeFalse();
+    }
 }
