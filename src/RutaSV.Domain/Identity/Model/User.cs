@@ -23,4 +23,5 @@ public class User
     public DateTime? DeletedAt { get; set; }
 
     public ICollection<UserToken> Tokens { get; set; } = [];
+    public ICollection<EmailNotification> EmailNotifications { get; set; } = [];
 }
