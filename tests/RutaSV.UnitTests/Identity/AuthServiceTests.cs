@@ -39,7 +39,8 @@ public sealed class AuthServiceTests
             new RegisterRequestValidator(),
             new LoginRequestValidator(),
             new GoogleAuthRequestValidator(),
-            new VerifyEmailRequestValidator());
+            new VerifyEmailRequestValidator(),
+            new ResendVerificationEmailRequestValidator());
     }
 
     [Fact]
@@ -390,6 +391,86 @@ public sealed class AuthServiceTests
 
         // Assert
         _ = await act.Should().ThrowAsync<InvalidTokenException>();
+    }
+
+    [Fact]
+    public async Task ResendVerificationEmailAsync_WhenUserPendingVerification_ShouldInvalidatePreviousTokensCreateNewTokenAndSendEmail()
+    {
+        // Arrange
+        User pendingUser = new()
+        {
+            Id = Guid.NewGuid(),
+            Email = "pendiente@rutasv.com",
+            FirstName = "Ana",
+            LastName = "López",
+            Status = UserStatus.PENDIENTE_VERIFICACION,
+            EmailVerified = false
+        };
+
+        UserToken? capturedToken = null;
+        string? sentRawToken = null;
+
+        _userRepositoryMock
+            .Setup(r => r.GetByEmailAsync("pendiente@rutasv.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(pendingUser);
+
+        _userTokenRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<UserToken>(), It.IsAny<CancellationToken>()))
+            .Callback<UserToken, CancellationToken>((t, _) => capturedToken = t)
+            .Returns(Task.CompletedTask);
+
+        _emailServiceMock
+            .Setup(e => e.SendVerificationEmailAsync(
+                "pendiente@rutasv.com",
+                "Ana",
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<string, string, string, CancellationToken>((_, _, raw, _) => sentRawToken = raw)
+            .Returns(Task.CompletedTask);
+
+        ResendVerificationEmailRequest request = new("Pendiente@RutaSV.com");
+
+        // Act
+        await _sut.ResendVerificationEmailAsync(request);
+
+        // Assert
+        _userTokenRepositoryMock.Verify(
+            r => r.InvalidateUserTokensAsync(pendingUser.Id, TokenType.VERIFICAR_EMAIL, It.IsAny<CancellationToken>()),
+            Times.Once);
+        capturedToken.Should().NotBeNull();
+        capturedToken!.UserId.Should().Be(pendingUser.Id);
+        capturedToken.Type.Should().Be(TokenType.VERIFICAR_EMAIL);
+        sentRawToken.Should().NotBeNullOrWhiteSpace();
+        capturedToken.TokenHash.Should().Be(ComputeSha256(sentRawToken!));
+        _userTokenRepositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ResendVerificationEmailAsync_WhenEmailAlreadyVerified_ShouldThrowInvalidTokenException()
+    {
+        // Arrange
+        User verifiedUser = new()
+        {
+            Id = Guid.NewGuid(),
+            Email = "verificado@rutasv.com",
+            Status = UserStatus.ACTIVO,
+            EmailVerified = true
+        };
+
+        _userRepositoryMock
+            .Setup(r => r.GetByEmailAsync("verificado@rutasv.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(verifiedUser);
+
+        ResendVerificationEmailRequest request = new("verificado@rutasv.com");
+
+        // Act
+        Func<Task> act = async () => await _sut.ResendVerificationEmailAsync(request);
+
+        // Assert
+        _ = await act.Should().ThrowAsync<InvalidTokenException>();
+        _userTokenRepositoryMock.Verify(
+            r => r.AddAsync(It.IsAny<UserToken>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     private static string ComputeSha256(string input)

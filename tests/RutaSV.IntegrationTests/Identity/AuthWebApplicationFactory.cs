@@ -115,6 +115,20 @@ internal sealed class FakeUserTokenRepository(InMemoryUserStore store) : IUserTo
         return Task.CompletedTask;
     }
 
+    public Task InvalidateUserTokensAsync(
+        Guid userId,
+        TokenType type,
+        CancellationToken cancellationToken = default)
+    {
+        DateTime now = DateTime.UtcNow;
+        foreach (UserToken token in store.Tokens.Values.Where(t => t.UserId == userId && t.Type == type && t.UsedAt is null))
+        {
+            token.UsedAt = now;
+        }
+
+        return Task.CompletedTask;
+    }
+
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return Task.CompletedTask;
