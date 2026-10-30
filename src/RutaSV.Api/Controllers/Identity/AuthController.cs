@@ -1,4 +1,8 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 using RutaSV.Application.Identity.DTO;
 using RutaSV.Application.Identity.Service;
@@ -59,5 +63,25 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
     {
         await authService.VerifyEmailAsync(request, cancellationToken);
         return Ok(new { message = "Correo electrónico verificado exitosamente." });
+    }
+
+    [HttpPost("resend-verification-email")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ResendVerificationEmail(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] ResendVerificationEmailRequest? request = null,
+        CancellationToken cancellationToken = default)
+    {
+        string email = !string.IsNullOrWhiteSpace(request?.Email)
+            ? request.Email
+            : User.FindFirstValue(JwtRegisteredClaimNames.Email)
+              ?? User.FindFirstValue(ClaimTypes.Email)
+              ?? string.Empty;
+
+        await authService.ResendVerificationEmailAsync(
+            new ResendVerificationEmailRequest(email),
+            cancellationToken);
+
+        return Ok(new { message = "Se ha enviado un nuevo correo de verificación." });
     }
 }
