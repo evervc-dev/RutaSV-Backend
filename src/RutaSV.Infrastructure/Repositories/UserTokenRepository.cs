@@ -36,6 +36,22 @@ public sealed class UserTokenRepository(ApplicationDbContext dbContext) : IUserT
         return Task.CompletedTask;
     }
 
+    public async Task InvalidateUserTokensAsync(
+        Guid userId,
+        TokenType type,
+        CancellationToken cancellationToken = default)
+    {
+        DateTime now = DateTime.UtcNow;
+        List<UserToken> activeTokens = await dbContext.UserTokens
+            .Where(t => t.UserId == userId && t.Type == type && t.UsedAt == null)
+            .ToListAsync(cancellationToken);
+
+        foreach (UserToken token in activeTokens)
+        {
+            token.UsedAt = now;
+        }
+    }
+
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         // Con SaveChangesAsync guarda los cambios realizados en el contexto de base de datos.
