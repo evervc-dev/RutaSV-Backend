@@ -6,6 +6,7 @@ using FluentValidation;
 using RutaSV.Application.Identity.DTO;
 using RutaSV.Application.Identity.Repository;
 using RutaSV.Application.Identity.Security;
+using RutaSV.Application.Identity.Validation;
 using RutaSV.Domain.Identity.Enum;
 using RutaSV.Domain.Identity.Exception;
 using RutaSV.Domain.Identity.Model;
@@ -21,7 +22,8 @@ public sealed class AuthService(
     IValidator<RegisterRequest> registerValidator,
     IValidator<LoginRequest> loginValidator,
     IValidator<GoogleAuthRequest> googleAuthValidator,
-    IValidator<VerifyEmailRequest> verifyEmailValidator) : IAuthService
+    IValidator<VerifyEmailRequest> verifyEmailValidator,
+    IValidator<ResendVerificationEmailRequest>? resendVerificationValidator = null) : IAuthService
 {
     public async Task<AuthResponse> RegisterAsync(
         RegisterRequest request,
@@ -263,6 +265,55 @@ public sealed class AuthService(
         await userTokenRepository.UpdateAsync(userToken, cancellationToken); // Actualiza el token de verificación en el repositorio
         await userRepository.UpdateAsync(user, cancellationToken); // Actualiza el usuario en el repositorio
         await userRepository.SaveChangesAsync(cancellationToken); // Guarda los cambios en la base de datos
+    }
+
+    public async Task ResendVerificationEmailAsync(
+        ResendVerificationEmailRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        IValidator<ResendVerificationEmailRequest> validator = resendVerificationValidator ?? new ResendVerificationEmailRequestValidator();
+        await validator.ValidateAndThrowAsync(request, cancellationToken);
+
+        string normalizedEmail = request.Email!.Trim().ToLowerInvariant();
+        User? user = await userRepository.GetByEmailAsync(normalizedEmail, cancellationToken);
+
+        if (user is null)
+        {
+            throw new InvalidTokenException("No se encontró un usuario asociado al correo electrónico proporcionado.");
+        }
+
+        if (user.EmailVerified)
+        {
+            throw new InvalidTokenException("El correo electrónico ya ha sido verificado.");
+        }
+
+        await userTokenRepository.InvalidateUserTokensAsync(
+            user.Id,
+            TokenType.VERIFICAR_EMAIL,
+            cancellationToken);
+
+        DateTime now = DateTime.UtcNow;
+        string rawToken = GenerateSecureToken();
+        string tokenHash = ComputeSha256Hash(rawToken);
+
+        UserToken newVerificationToken = new()
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Type = TokenType.VERIFICAR_EMAIL,
+            TokenHash = tokenHash,
+            ExpiresAt = now.AddHours(24),
+            CreatedAt = now
+        };
+
+        await userTokenRepository.AddAsync(newVerificationToken, cancellationToken);
+        await userTokenRepository.SaveChangesAsync(cancellationToken);
+
+        await emailService.SendVerificationEmailAsync(
+            user.Email,
+            user.FirstName,
+            rawToken,
+            cancellationToken);
     }
 
     /// <summary>

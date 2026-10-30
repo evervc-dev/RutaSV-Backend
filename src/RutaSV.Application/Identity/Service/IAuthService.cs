@@ -35,4 +35,11 @@ public interface IAuthService
     /// <param name="cancellationToken">Token de cancelación.</param>
     /// <returns></returns>
     Task VerifyEmailAsync(VerifyEmailRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Invalida cualquier token anterior de verificación para el usuario, genera uno nuevo y reenvía el correo de verificación.
+    /// </summary>
+    /// <param name="request">Solicitud con el correo electrónico del usuario.</param>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    Task ResendVerificationEmailAsync(ResendVerificationEmailRequest request, CancellationToken cancellationToken = default);
 }

@@ -1,15 +1,21 @@
 using MailKit.Net.Smtp;
 using MailKit.Security;
 
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
 using MimeKit;
 
 using RutaSV.Application.Identity.Service;
+using RutaSV.Domain.Identity.Enum;
+using RutaSV.Domain.Identity.Model;
+using RutaSV.Infrastructure.Persistence;
 
 namespace RutaSV.Infrastructure.Email;
 
-public sealed class SmtpEmailService(IConfiguration configuration) : IEmailService
+public sealed class SmtpEmailService(
+    IConfiguration configuration,
+    ApplicationDbContext? dbContext = null) : IEmailService
 {
     public async Task SendVerificationEmailAsync(
         string recipientEmail,
@@ -53,20 +59,64 @@ public sealed class SmtpEmailService(IConfiguration configuration) : IEmailServi
 
         message.Body = bodyBuilder.ToMessageBody(); // Convierte el contenido del cuerpo del correo electrónico en un objeto MimeEntity y lo asigna al mensaje de correo electrónico.
 
-        using SmtpClient client = new(); // Crea un nuevo cliente SMTP para enviar el correo electrónico.
-        await client.ConnectAsync(smtpHost, smtpPort, SecureSocketOptions.None, cancellationToken); // Conecta al servidor SMTP utilizando la configuración proporcionada y sin cifrado (SecureSocketOptions.None).
-
-        string? smtpUser = configuration["Smtp:Username"]; // Obtiene el nombre de usuario para la autenticación SMTP desde la configuración.
-        string? smtpPass = configuration["Smtp:Password"]; // Obtiene la contraseña para la autenticación SMTP desde la configuración.
-
-        // Si se proporcionan credenciales de autenticación SMTP, se autentica con el servidor SMTP antes de enviar el correo electrónico.
-        // Sino, no hay problema, ya que Mailpit permite enviar correos sin autenticación (en local)
-        if (!string.IsNullOrWhiteSpace(smtpUser) && !string.IsNullOrWhiteSpace(smtpPass))
+        EmailNotification? notification = null;
+        if (dbContext is not null)
         {
-            await client.AuthenticateAsync(smtpUser, smtpPass, cancellationToken); // Autentica con el servidor SMTP utilizando las credenciales proporcionadas.
+            string normalizedEmail = recipientEmail.Trim().ToLowerInvariant();
+            User? recipientUser = await dbContext.Users
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail && u.DeletedAt == null, cancellationToken);
+
+            notification = new EmailNotification
+            {
+                Id = Guid.NewGuid(),
+                UserId = recipientUser?.Id,
+                Type = NotificationType.VERIFICAR_EMAIL,
+                Recipient = recipientEmail,
+                Subject = message.Subject,
+                Body = bodyBuilder.HtmlBody,
+                Status = EmailDeliveryStatus.PENDIENTE,
+                Attempts = 1,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _ = await dbContext.EmailNotifications.AddAsync(notification, cancellationToken);
         }
 
-        _ = await client.SendAsync(message, cancellationToken); // Envía el mensaje de correo electrónico al servidor SMTP.
-        await client.DisconnectAsync(true, cancellationToken); // Desconecta del servidor SMTP de manera segura, asegurándose de que todos los datos pendientes se envíen antes de cerrar la conexión.
+        try
+        {
+            using SmtpClient client = new(); // Crea un nuevo cliente SMTP para enviar el correo electrónico.
+            await client.ConnectAsync(smtpHost, smtpPort, SecureSocketOptions.None, cancellationToken); // Conecta al servidor SMTP utilizando la configuración proporcionada y sin cifrado (SecureSocketOptions.None).
+
+            string? smtpUser = configuration["Smtp:Username"]; // Obtiene el nombre de usuario para la autenticación SMTP desde la configuración.
+            string? smtpPass = configuration["Smtp:Password"]; // Obtiene la contraseña para la autenticación SMTP desde la configuración.
+
+            // Si se proporcionan credenciales de autenticación SMTP, se autentica con el servidor SMTP antes de enviar el correo electrónico.
+            // Sino, no hay problema, ya que Mailpit permite enviar correos sin autenticación (en local)
+            if (!string.IsNullOrWhiteSpace(smtpUser) && !string.IsNullOrWhiteSpace(smtpPass))
+            {
+                await client.AuthenticateAsync(smtpUser, smtpPass, cancellationToken); // Autentica con el servidor SMTP utilizando las credenciales proporcionadas.
+            }
+
+            _ = await client.SendAsync(message, cancellationToken); // Envía el mensaje de correo electrónico al servidor SMTP.
+            await client.DisconnectAsync(true, cancellationToken); // Desconecta del servidor SMTP de manera segura, asegurándose de que todos los datos pendientes se envíen antes de cerrar la conexión.
+
+            if (notification is not null && dbContext is not null)
+            {
+                notification.Status = EmailDeliveryStatus.ENVIADO;
+                notification.SentAt = DateTime.UtcNow;
+                _ = await dbContext.SaveChangesAsync(cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (notification is not null && dbContext is not null)
+            {
+                notification.Status = EmailDeliveryStatus.FALLIDO;
+                notification.Error = ex.Message.Length > 500 ? ex.Message[..500] : ex.Message;
+                _ = await dbContext.SaveChangesAsync(cancellationToken);
+            }
+
+            throw;
+        }
     }
 }
