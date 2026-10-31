@@ -24,4 +24,6 @@ public class User
 
     public ICollection<UserToken> Tokens { get; set; } = [];
     public ICollection<EmailNotification> EmailNotifications { get; set; } = [];
+    public ICollection<Company> Companies { get; set; } = [];
+    public ICollection<OperatorRequest> OperatorRequests { get; set; } = [];
 }

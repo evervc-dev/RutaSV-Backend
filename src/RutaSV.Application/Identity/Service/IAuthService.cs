@@ -42,4 +42,12 @@ public interface IAuthService
     /// <param name="request">Solicitud con el correo electrónico del usuario.</param>
     /// <param name="cancellationToken">Token de cancelación.</param>
     Task ResendVerificationEmailAsync(ResendVerificationEmailRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Obtiene la información actualizada del usuario autenticado desde la base de datos y emite un nuevo token JWT con sus claims actuales (incluyendo cambios de rol).
+    /// </summary>
+    /// <param name="userId">Identificador del usuario autenticado.</param>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    /// <returns>AuthResponse con los datos actuales del usuario y un nuevo token JWT.</returns>
+    Task<AuthResponse> RefreshSessionAsync(Guid userId, CancellationToken cancellationToken = default);
 }

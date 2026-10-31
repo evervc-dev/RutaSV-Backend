@@ -1,11 +1,13 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 using RutaSV.Application.Identity.DTO;
 using RutaSV.Application.Identity.Service;
+using RutaSV.Domain.Identity.Exception;
 
 namespace RutaSV.Api.Controllers.Identity;
 
@@ -83,5 +85,40 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
             cancellationToken);
 
         return Ok(new { message = "Se ha enviado un nuevo correo de verificación." });
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetCurrentSession(CancellationToken cancellationToken)
+    {
+        Guid userId = GetCurrentUserId();
+        AuthResponse response = await authService.RefreshSessionAsync(userId, cancellationToken);
+        return Ok(response);
+    }
+
+    [Authorize]
+    [HttpPost("refresh")]
+    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> RefreshSession(CancellationToken cancellationToken)
+    {
+        Guid userId = GetCurrentUserId();
+        AuthResponse response = await authService.RefreshSessionAsync(userId, cancellationToken);
+        return Ok(response);
+    }
+
+    private Guid GetCurrentUserId()
+    {
+        string? rawId = User.FindFirstValue(JwtRegisteredClaimNames.Sub)
+            ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (!Guid.TryParse(rawId, out Guid userId))
+        {
+            throw new InvalidCredentialsException("No se pudo identificar al usuario autenticado.");
+        }
+
+        return userId;
     }
 }

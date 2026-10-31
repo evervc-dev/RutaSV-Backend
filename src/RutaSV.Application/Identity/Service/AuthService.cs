@@ -316,6 +316,25 @@ public sealed class AuthService(
             cancellationToken);
     }
 
+    public async Task<AuthResponse> RefreshSessionAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        User? user = await userRepository.GetByIdAsync(userId, cancellationToken);
+        if (user is null)
+        {
+            throw new InvalidCredentialsException("El usuario autenticado no existe.");
+        }
+
+        if (user.Status is UserStatus.BLOQUEADO or UserStatus.SUSPENDIDO or UserStatus.ELIMINADO)
+        {
+            throw new InvalidCredentialsException("La cuenta de usuario no se encuentra habilitada.");
+        }
+
+        string jwt = jwtProvider.GenerateToken(user);
+        return MapToResponse(user, jwt);
+    }
+
     /// <summary>
     /// Mapea la información del usuario y el token JWT a un objeto AuthResponse que se retornará al cliente.
     /// </summary>

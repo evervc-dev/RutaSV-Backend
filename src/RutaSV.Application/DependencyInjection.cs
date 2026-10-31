@@ -17,6 +17,7 @@ public static class DependencyInjection
     {
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly); // Agrega los validadores de FluentValidation desde el ensamblado actual
         services.AddScoped<IAuthService, AuthService>(); // Agrega el servicio de autenticación a la colección de servicios con un tiempo de vida Scoped
+        services.AddScoped<IOperatorRequestService, OperatorRequestService>();
 
         return services;
     }

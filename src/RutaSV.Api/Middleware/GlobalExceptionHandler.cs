@@ -40,6 +40,18 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
                 StatusCodes.Status409Conflict,
                 "El usuario ya existe",
                 exception.Message),
+            PendingOperatorRequestAlreadyExistsException => (
+                StatusCodes.Status409Conflict,
+                "Solicitud de operador pendiente existente",
+                exception.Message),
+            OperatorRequestAlreadyReviewedException => (
+                StatusCodes.Status409Conflict,
+                "Solicitud de operador ya procesada",
+                exception.Message),
+            OperatorRequestNotFoundException => (
+                StatusCodes.Status404NotFound,
+                "Solicitud de operador no encontrada",
+                exception.Message),
             InvalidTokenException => (
                 StatusCodes.Status400BadRequest,
                 "Token inválido",
