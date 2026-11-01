@@ -8,6 +8,10 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<UserToken> UserTokens => Set<UserToken>();
+    public DbSet<EmailNotification> EmailNotifications => Set<EmailNotification>();
+    public DbSet<Company> Companies => Set<Company>();
+    public DbSet<OperatorRequest> OperatorRequests => Set<OperatorRequest>();
+    public DbSet<OperatorRequestDocument> OperatorRequestDocuments => Set<OperatorRequestDocument>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

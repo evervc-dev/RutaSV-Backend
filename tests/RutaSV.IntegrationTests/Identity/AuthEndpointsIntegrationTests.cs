@@ -221,6 +221,45 @@ public sealed class AuthEndpointsIntegrationTests : IClassFixture<AuthWebApplica
     }
 
     [Fact]
+    public async Task ResendVerificationEmail_WhenCalled_ShouldInvalidateOldTokenAndGenerateWorkingNewToken()
+    {
+        // Arrange
+        string email = "reenvio.verificacion@rutasv.com";
+        RegisterRequest registerRequest = new(
+            email,
+            "RutaSV2026!",
+            "Salarrué",
+            "Autor");
+
+        HttpResponseMessage registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerRequest);
+        registerResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        string oldRawToken = _factory.Store.SentVerificationTokensByEmail[email];
+
+        // Act: solicitar reenvío de token
+        HttpResponseMessage resendResponse = await _client.PostAsJsonAsync(
+            "/api/auth/resend-verification-email",
+            new ResendVerificationEmailRequest(email));
+
+        // Assert: reenvío exitoso y nuevo token distinto al anterior
+        resendResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        string newRawToken = _factory.Store.SentVerificationTokensByEmail[email];
+        newRawToken.Should().NotBe(oldRawToken);
+
+        // El token anterior debe haber quedado invalidado
+        HttpResponseMessage oldTokenVerifyResponse = await _client.PostAsJsonAsync(
+            "/api/auth/verify-email",
+            new VerifyEmailRequest(oldRawToken));
+        oldTokenVerifyResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        // El nuevo token debe verificar la cuenta exitosamente
+        HttpResponseMessage newTokenVerifyResponse = await _client.PostAsJsonAsync(
+            "/api/auth/verify-email",
+            new VerifyEmailRequest(newRawToken));
+        newTokenVerifyResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
     public async Task CorsPreflight_WhenOriginIsAllowed_ShouldReturnAccessControlAllowOriginHeader()
     {
         // Arrange

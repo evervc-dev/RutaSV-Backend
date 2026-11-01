@@ -30,6 +30,14 @@ public interface IUserTokenRepository
     Task UpdateAsync(UserToken userToken, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Invalida todos los tokens anteriores no utilizados de un tipo específico para el usuario indicado.
+    /// </summary>
+    /// <param name="userId">Identificador del usuario</param>
+    /// <param name="type">Tipo de token a invalidar</param>
+    /// <param name="cancellationToken">Token de cancelación</param>
+    Task InvalidateUserTokensAsync(Guid userId, TokenType type, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Guarda los cambios realizados en la base de datos de manera asíncrona.
     /// </summary>
     /// <param name="cancellationToken">Token de cancelación</param>

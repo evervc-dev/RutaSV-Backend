@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 
+using RutaSV.Application.Common.Storage;
 using RutaSV.Application.Identity.Repository;
 using RutaSV.Application.Identity.Security;
 using RutaSV.Application.Identity.Service;
@@ -13,6 +14,7 @@ using RutaSV.Infrastructure.Email;
 using RutaSV.Infrastructure.Persistence;
 using RutaSV.Infrastructure.Repositories;
 using RutaSV.Infrastructure.Security;
+using RutaSV.Infrastructure.Storage;
 
 namespace RutaSV.Infrastructure;
 
@@ -40,11 +42,14 @@ public static class DependencyInjection
         // Y que cuando se guarde en uno de los repositorios, se pueda reflejar en los demás repositorios que estén usando la misma instancia del contexto de base de datos.
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUserTokenRepository, UserTokenRepository>();
+        services.AddScoped<ICompanyRepository, CompanyRepository>();
+        services.AddScoped<IOperatorRequestRepository, OperatorRequestRepository>();
 
         // Agrega los servicios de seguridad y autenticación al contenedor de servicios.
         services.AddScoped<IJwtProvider, JwtProvider>();
         services.AddScoped<IGoogleAuthService, GoogleAuthService>();
         services.AddScoped<IEmailService, SmtpEmailService>();
+        services.AddScoped<IFileStorageService, MinioStorageService>();
 
         string? jwtSecret = configuration["Jwt:SecretKey"]; // Obtiene la clave secreta para la firma de tokens JWT desde la configuración.
 
