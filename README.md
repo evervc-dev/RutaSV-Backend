@@ -81,7 +81,23 @@ El repositorio incluye una plantilla llamada `.env.example`. Debes hacer una cop
   Copy-Item .env.example .env
   ```
 
-> 💡 **Nota:** Para empezar a trabajar **solo necesitas asignar los campos que no tienen valor** dentro del `.env`. Ya hay valores predeterminados para algunos servicios, pero hay ciertos campos vacíos (como credenciales de Google OAuth `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` y otros), cuando asignes esos valores, el entorno ya estará listo para funcionar en local. Este archivo está en el `.gitignore`, por lo que tus configuraciones personales nunca se subirán a GitHub.
+> 💡 **Nota:** Este archivo está en el `.gitignore`, por lo que tus configuraciones y claves nunca se subirán a GitHub. La mayoría de servicios locales (PostgreSQL, MinIO, Mailpit y puertos) ya traen valores predeterminados listos para usar, pero **debes configurar manualmente las credenciales de Google OAuth 2.0**.
+
+#### Configuración de credenciales de Google OAuth 2.0 (`GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET`)
+
+En tu archivo `.env` recién creado encontrarás vacías las variables de autenticación con Google:
+
+```dotenv
+# Google OAuth 2.0
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+```
+
+Para que el inicio de sesión y registro con Google (`POST /api/auth/google`) funcionen localmente:
+1. Busca las credenciales de **Google OAuth 2.0 compartidas por WhatsApp** con el equipo de desarrollo.
+2. Copia y pega los valores correspondientes en `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` dentro de tu archivo `.env` (sin comillas ni espacios extra).
+3. Asegúrate de que el `GOOGLE_CLIENT_ID` colocado aquí sea exactamente el mismo que configures en la variable `VITE_GOOGLE_CLIENT_ID` del `.env` en **RutaSV-Frontend**, ya que el backend valida que el `idToken` emitido por Google haya sido generado para ese mismo cliente.
+4. Si ya tenías levantados los contenedores antes de editar el `.env`, reinícialos (`docker compose -f docker-compose.dev.yml up -d`) para que el contenedor de la API tome las nuevas variables.
 
 ---
 
