@@ -4,5 +4,6 @@ public enum EmailDeliveryStatus
 {
     PENDIENTE,
     ENVIADO,
-    FALLIDO
+    FALLIDO,
+    OMITIDO
 }

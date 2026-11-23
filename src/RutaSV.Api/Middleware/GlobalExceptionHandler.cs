@@ -3,6 +3,8 @@ using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
+using RutaSV.Domain.Bookings.Exception;
+using RutaSV.Domain.Catalog.Exception;
 using RutaSV.Domain.Common;
 using RutaSV.Domain.Identity.Exception;
 
@@ -36,6 +38,22 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
                 StatusCodes.Status401Unauthorized,
                 "Credenciales inválidas",
                 exception.Message),
+            ExperienceAccessDeniedException => (
+                StatusCodes.Status403Forbidden,
+                "Acceso denegado a la experiencia",
+                exception.Message),
+            CompanyAccessDeniedException => (
+                StatusCodes.Status403Forbidden,
+                "Acceso denegado a la empresa",
+                exception.Message),
+            ReservationAccessDeniedException => (
+                StatusCodes.Status403Forbidden,
+                "Acceso denegado a la reserva",
+                exception.Message),
+            EmailNotVerifiedForBookingException => (
+                StatusCodes.Status403Forbidden,
+                "Correo electrónico no verificado",
+                exception.Message),
             UserAlreadyExistsException => (
                 StatusCodes.Status409Conflict,
                 "El usuario ya existe",
@@ -48,9 +66,61 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
                 StatusCodes.Status409Conflict,
                 "Solicitud de operador ya procesada",
                 exception.Message),
+            ExperienceSlugAlreadyExistsException => (
+                StatusCodes.Status409Conflict,
+                "Slug de experiencia duplicado",
+                exception.Message),
+            ExperienceInvalidStateTransitionException => (
+                StatusCodes.Status409Conflict,
+                "Transición de estado de experiencia inválida",
+                exception.Message),
+            AvailabilityConflictException => (
+                StatusCodes.Status409Conflict,
+                "Conflicto de disponibilidad",
+                exception.Message),
+            InsufficientCapacityException => (
+                StatusCodes.Status409Conflict,
+                "Cupos insuficientes o sesión no disponible",
+                exception.Message),
+            ReservationInvalidStateTransitionException => (
+                StatusCodes.Status409Conflict,
+                "Operación no permitida en el estado actual de la reserva",
+                exception.Message),
             OperatorRequestNotFoundException => (
                 StatusCodes.Status404NotFound,
                 "Solicitud de operador no encontrada",
+                exception.Message),
+            CompanyNotFoundException => (
+                StatusCodes.Status404NotFound,
+                "Empresa no encontrada",
+                exception.Message),
+            ExperienceNotFoundException => (
+                StatusCodes.Status404NotFound,
+                "Experiencia no encontrada",
+                exception.Message),
+            AvailabilityNotFoundException => (
+                StatusCodes.Status404NotFound,
+                "Disponibilidad no encontrada",
+                exception.Message),
+            ExperienceScheduleNotFoundException => (
+                StatusCodes.Status404NotFound,
+                "Horario no encontrado",
+                exception.Message),
+            ReservationNotFoundException => (
+                StatusCodes.Status404NotFound,
+                "Reserva no encontrada",
+                exception.Message),
+            RefundNotFoundException => (
+                StatusCodes.Status404NotFound,
+                "Reembolso no encontrado",
+                exception.Message),
+            IncidentNotFoundException => (
+                StatusCodes.Status404NotFound,
+                "Incidencia no encontrada",
+                exception.Message),
+            ExperienceIncompleteForPublicationException => (
+                StatusCodes.Status422UnprocessableEntity,
+                "Experiencia incompleta para publicación",
                 exception.Message),
             InvalidTokenException => (
                 StatusCodes.Status400BadRequest,
@@ -85,6 +155,14 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
                     g => g.Select(e => e.ErrorMessage).ToArray());
 
             problemDetails.Extensions["errors"] = errors;
+        }
+        else if (exception is ExperienceIncompleteForPublicationException incompleteException)
+        {
+            problemDetails.Extensions["missingFields"] = incompleteException.MissingFields;
+        }
+        else if (exception is EmailNotVerifiedForBookingException)
+        {
+            problemDetails.Extensions["code"] = "EMAIL_NO_VERIFICADO";
         }
 
         // Establecer el código de estado de la respuesta y escribir los detalles del error en formato JSON

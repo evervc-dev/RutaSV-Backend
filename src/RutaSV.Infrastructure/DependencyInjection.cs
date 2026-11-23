@@ -6,6 +6,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 
+using RutaSV.Application.Bookings.Repository;
+using RutaSV.Application.Catalog.Repository;
 using RutaSV.Application.Common.Storage;
 using RutaSV.Application.Identity.Repository;
 using RutaSV.Application.Identity.Security;
@@ -44,6 +46,11 @@ public static class DependencyInjection
         services.AddScoped<IUserTokenRepository, UserTokenRepository>();
         services.AddScoped<ICompanyRepository, CompanyRepository>();
         services.AddScoped<IOperatorRequestRepository, OperatorRequestRepository>();
+        services.AddScoped<ICatalogLookupRepository, CatalogLookupRepository>();
+        services.AddScoped<IExperienceRepository, ExperienceRepository>();
+        services.AddScoped<IAvailabilityRepository, AvailabilityRepository>();
+        services.AddScoped<IFavoriteRepository, FavoriteRepository>();
+        services.AddScoped<IReservationRepository, ReservationRepository>();
 
         // Agrega los servicios de seguridad y autenticación al contenedor de servicios.
         services.AddScoped<IJwtProvider, JwtProvider>();

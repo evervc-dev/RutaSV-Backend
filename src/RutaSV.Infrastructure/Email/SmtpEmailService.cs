@@ -119,4 +119,123 @@ public sealed class SmtpEmailService(
             throw;
         }
     }
+
+    public async Task SendNotificationEmailAsync(
+        EmailNotificationRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.RecipientEmail))
+        {
+            return;
+        }
+
+        string recipientEmail = request.RecipientEmail.Trim();
+        User? recipientUser = null;
+
+        if (dbContext is not null)
+        {
+            if (request.UserId.HasValue)
+            {
+                recipientUser = await dbContext.Users
+                    .FirstOrDefaultAsync(u => u.Id == request.UserId.Value && u.DeletedAt == null, cancellationToken);
+            }
+            else
+            {
+                string normalizedEmail = recipientEmail.ToLowerInvariant();
+                recipientUser = await dbContext.Users
+                    .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail && u.DeletedAt == null, cancellationToken);
+            }
+        }
+
+        // RN-22: Si el destinatario requiere correo verificado y no lo tiene, registrar OMITIDO y no enviar
+        if (request.RequireVerifiedEmail && recipientUser is not null && !recipientUser.EmailVerified)
+        {
+            if (dbContext is not null)
+            {
+                _ = await dbContext.EmailNotifications.AddAsync(new EmailNotification
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = recipientUser.Id,
+                    ReservationId = request.ReservationId,
+                    Type = request.Type,
+                    Recipient = recipientEmail,
+                    Subject = request.Subject.Length > 200 ? request.Subject[..200] : request.Subject,
+                    Body = request.HtmlBody,
+                    Status = EmailDeliveryStatus.OMITIDO,
+                    Attempts = 0,
+                    Error = "Correo del destinatario no verificado (RN-22).",
+                    CreatedAt = DateTime.UtcNow
+                }, cancellationToken);
+                _ = await dbContext.SaveChangesAsync(cancellationToken);
+            }
+
+            return;
+        }
+
+        string smtpHost = configuration["Smtp:Host"] ?? "localhost";
+        int smtpPort = int.TryParse(configuration["Smtp:Port"], out int parsedPort) ? parsedPort : 1025;
+        string senderEmail = configuration["Smtp:SenderEmail"] ?? "no-reply@rutasv.com";
+        string senderName = configuration["Smtp:SenderName"] ?? "RutaSV Marketplace";
+
+        MimeMessage message = new();
+        message.From.Add(new MailboxAddress(senderName, senderEmail));
+        message.To.Add(new MailboxAddress(request.RecipientName, recipientEmail));
+        message.Subject = request.Subject;
+        message.Body = new BodyBuilder
+        {
+            HtmlBody = request.HtmlBody,
+            TextBody = request.TextBody
+        }.ToMessageBody();
+
+        EmailNotification? notification = null;
+        if (dbContext is not null)
+        {
+            notification = new EmailNotification
+            {
+                Id = Guid.NewGuid(),
+                UserId = request.UserId ?? recipientUser?.Id,
+                ReservationId = request.ReservationId,
+                Type = request.Type,
+                Recipient = recipientEmail,
+                Subject = request.Subject.Length > 200 ? request.Subject[..200] : request.Subject,
+                Body = request.HtmlBody,
+                Status = EmailDeliveryStatus.PENDIENTE,
+                Attempts = 1,
+                CreatedAt = DateTime.UtcNow
+            };
+            _ = await dbContext.EmailNotifications.AddAsync(notification, cancellationToken);
+        }
+
+        try
+        {
+            using SmtpClient client = new();
+            await client.ConnectAsync(smtpHost, smtpPort, SecureSocketOptions.None, cancellationToken);
+
+            string? smtpUser = configuration["Smtp:Username"];
+            string? smtpPass = configuration["Smtp:Password"];
+            if (!string.IsNullOrWhiteSpace(smtpUser) && !string.IsNullOrWhiteSpace(smtpPass))
+            {
+                await client.AuthenticateAsync(smtpUser, smtpPass, cancellationToken);
+            }
+
+            _ = await client.SendAsync(message, cancellationToken);
+            await client.DisconnectAsync(true, cancellationToken);
+
+            if (notification is not null && dbContext is not null)
+            {
+                notification.Status = EmailDeliveryStatus.ENVIADO;
+                notification.SentAt = DateTime.UtcNow;
+                _ = await dbContext.SaveChangesAsync(cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (notification is not null && dbContext is not null)
+            {
+                notification.Status = EmailDeliveryStatus.FALLIDO;
+                notification.Error = ex.Message.Length > 500 ? ex.Message[..500] : ex.Message;
+                _ = await dbContext.SaveChangesAsync(cancellationToken);
+            }
+        }
+    }
 }

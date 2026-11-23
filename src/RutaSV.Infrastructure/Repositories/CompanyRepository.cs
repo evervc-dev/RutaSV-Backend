@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 
 using RutaSV.Application.Identity.Repository;
+using RutaSV.Domain.Identity.Enum;
 using RutaSV.Domain.Identity.Model;
 using RutaSV.Infrastructure.Persistence;
 
@@ -11,7 +12,31 @@ public sealed class CompanyRepository(ApplicationDbContext dbContext) : ICompany
     public async Task<Company?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await dbContext.Companies
+            .Include(c => c.Municipality)
+                .ThenInclude(m => m!.Department)
             .FirstOrDefaultAsync(c => c.Id == id && c.DeletedAt == null, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Company>> GetByOperatorIdAsync(Guid operatorId, CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Companies
+            .AsNoTracking()
+            .Include(c => c.Municipality)
+                .ThenInclude(m => m!.Department)
+            .Where(c => c.OperatorId == operatorId && c.DeletedAt == null)
+            .OrderByDescending(c => c.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Company>> GetApprovedCompaniesAsync(CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Companies
+            .AsNoTracking()
+            .Include(c => c.Municipality)
+                .ThenInclude(m => m!.Department)
+            .Where(c => c.DeletedAt == null && c.Status == CompanyStatus.APROBADA)
+            .OrderBy(c => c.TradeName)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task AddAsync(Company company, CancellationToken cancellationToken = default)

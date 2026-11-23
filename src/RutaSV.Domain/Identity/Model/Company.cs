@@ -1,3 +1,4 @@
+using RutaSV.Domain.Catalog.Model;
 using RutaSV.Domain.Identity.Enum;
 
 namespace RutaSV.Domain.Identity.Model;
@@ -26,5 +27,7 @@ public class Company
 
     public User? Operator { get; set; }
     public User? ApprovedByUser { get; set; }
+    public Municipality? Municipality { get; set; }
     public ICollection<OperatorRequest> OperatorRequests { get; set; } = [];
+    public ICollection<Experience> Experiences { get; set; } = [];
 }

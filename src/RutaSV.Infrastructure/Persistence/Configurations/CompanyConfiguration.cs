@@ -110,5 +110,10 @@ public sealed class CompanyConfiguration : IEntityTypeConfiguration<Company>
             .WithMany()
             .HasForeignKey(x => x.ApprovedBy)
             .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.Municipality)
+            .WithMany()
+            .HasForeignKey(x => x.MunicipalityId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

@@ -30,7 +30,7 @@ public sealed class EmailNotificationConfiguration : IEntityTypeConfiguration<Em
         builder.Property(e => e.Type)
             .HasColumnName("type")
             .HasConversion<string>()
-            .HasMaxLength(30)
+            .HasMaxLength(40)
             .IsRequired();
 
         builder.Property(e => e.Recipient)

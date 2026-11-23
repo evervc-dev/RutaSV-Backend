@@ -1,4 +1,17 @@
+using RutaSV.Domain.Identity.Enum;
+
 namespace RutaSV.Application.Identity.Service;
+
+public sealed record EmailNotificationRequest(
+    string RecipientEmail,
+    string RecipientName,
+    NotificationType Type,
+    string Subject,
+    string HtmlBody,
+    string TextBody,
+    Guid? UserId = null,
+    Guid? ReservationId = null,
+    bool RequireVerifiedEmail = false);
 
 public interface IEmailService
 {
@@ -14,6 +27,15 @@ public interface IEmailService
         string recipientEmail,
         string firstName,
         string verificationToken,
+        CancellationToken cancellationToken = default
+    );
+
+    /// <summary>
+    /// Envía un correo transaccional de notificación (reservas, reembolsos, incidencias, etc.)
+    /// respetando RN-22 (OMITIDO si RequireVerifiedEmail es true y el correo del usuario no está verificado).
+    /// </summary>
+    Task SendNotificationEmailAsync(
+        EmailNotificationRequest request,
         CancellationToken cancellationToken = default
     );
 }
