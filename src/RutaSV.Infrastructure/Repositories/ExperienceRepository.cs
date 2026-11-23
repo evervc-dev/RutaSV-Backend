@@ -202,25 +202,33 @@ public sealed class ExperienceRepository(ApplicationDbContext dbContext) : IExpe
         return (items, totalRecords);
     }
 
-    public async Task AddAsync(
+    public Task AddAsync(
         Experience experience,
         CancellationToken cancellationToken = default)
     {
-        _ = await dbContext.Experiences.AddAsync(experience, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        dbContext.Entry(experience).State = EntityState.Added;
+        return Task.CompletedTask;
     }
 
-    public async Task AddCategoriesAsync(
+    public Task AddCategoriesAsync(
         IEnumerable<ExperienceCategory> categories,
         CancellationToken cancellationToken = default)
     {
-        await dbContext.ExperienceCategories.AddRangeAsync(
-            categories.Select(c => new ExperienceCategory
+        cancellationToken.ThrowIfCancellationRequested();
+        List<ExperienceCategory> snapshot = categories.ToList();
+        foreach (ExperienceCategory c in snapshot)
+        {
+            ExperienceCategory detached = new()
             {
                 ExperienceId = c.ExperienceId,
                 CategoryId = c.CategoryId,
                 IsPrimary = c.IsPrimary
-            }),
-            cancellationToken);
+            };
+            dbContext.Entry(detached).State = EntityState.Added;
+        }
+
+        return Task.CompletedTask;
     }
 
     public async Task ReplaceCategoriesAsync(
@@ -228,6 +236,7 @@ public sealed class ExperienceRepository(ApplicationDbContext dbContext) : IExpe
         IEnumerable<ExperienceCategory> categories,
         CancellationToken cancellationToken = default)
     {
+        List<ExperienceCategory> snapshot = categories.ToList();
         List<ExperienceCategory> existing = await dbContext.ExperienceCategories
             .Where(ec => ec.ExperienceId == experienceId)
             .ToListAsync(cancellationToken);
@@ -235,16 +244,39 @@ public sealed class ExperienceRepository(ApplicationDbContext dbContext) : IExpe
         if (existing.Count > 0)
         {
             dbContext.ExperienceCategories.RemoveRange(existing);
+            _ = await dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        await AddCategoriesAsync(categories, cancellationToken);
+        await AddCategoriesAsync(snapshot, cancellationToken);
     }
 
-    public async Task AddImagesAsync(
+    public Task AddImagesAsync(
         IEnumerable<ExperienceImage> images,
         CancellationToken cancellationToken = default)
     {
-        await dbContext.ExperienceImages.AddRangeAsync(images, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        List<ExperienceImage> snapshot = images.ToList();
+        foreach (ExperienceImage img in snapshot)
+        {
+            ExperienceImage detached = new()
+            {
+                Id = img.Id,
+                ExperienceId = img.ExperienceId,
+                ObjectKey = img.ObjectKey,
+                Url = img.Url,
+                ThumbnailUrl = img.ThumbnailUrl,
+                AltText = img.AltText,
+                SortOrder = img.SortOrder,
+                IsCover = img.IsCover,
+                RemovedAt = img.RemovedAt,
+                RemovedBy = img.RemovedBy,
+                RemovalReason = img.RemovalReason,
+                CreatedAt = img.CreatedAt
+            };
+            dbContext.Entry(detached).State = EntityState.Added;
+        }
+
+        return Task.CompletedTask;
     }
 
     public async Task ReplaceImagesAsync(
@@ -252,6 +284,7 @@ public sealed class ExperienceRepository(ApplicationDbContext dbContext) : IExpe
         IEnumerable<ExperienceImage> images,
         CancellationToken cancellationToken = default)
     {
+        List<ExperienceImage> snapshot = images.ToList();
         List<ExperienceImage> existing = await dbContext.ExperienceImages
             .Where(i => i.ExperienceId == experienceId && i.RemovedAt == null)
             .ToListAsync(cancellationToken);
@@ -259,9 +292,10 @@ public sealed class ExperienceRepository(ApplicationDbContext dbContext) : IExpe
         if (existing.Count > 0)
         {
             dbContext.ExperienceImages.RemoveRange(existing);
+            _ = await dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        await dbContext.ExperienceImages.AddRangeAsync(images, cancellationToken);
+        await AddImagesAsync(snapshot, cancellationToken);
     }
 
     public Task UpdateAsync(
@@ -269,7 +303,7 @@ public sealed class ExperienceRepository(ApplicationDbContext dbContext) : IExpe
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        _ = dbContext.Experiences.Update(experience);
+        dbContext.Entry(experience).State = EntityState.Modified;
         return Task.CompletedTask;
     }
 

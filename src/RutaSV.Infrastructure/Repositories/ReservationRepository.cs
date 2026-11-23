@@ -136,44 +136,52 @@ public sealed class ReservationRepository(ApplicationDbContext dbContext) : IRes
             .ToListAsync(cancellationToken);
     }
 
-    public async Task AddAsync(Reservation reservation, CancellationToken cancellationToken = default)
+    public Task AddAsync(Reservation reservation, CancellationToken cancellationToken = default)
     {
-        _ = await dbContext.Reservations.AddAsync(reservation, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        dbContext.Entry(reservation).State = EntityState.Added;
+        return Task.CompletedTask;
     }
 
     public Task UpdateAsync(Reservation reservation, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        _ = dbContext.Reservations.Update(reservation);
+        dbContext.Entry(reservation).State = EntityState.Modified;
         return Task.CompletedTask;
     }
 
-    public async Task AddHistoryAsync(ReservationHistory history, CancellationToken cancellationToken = default)
+    public Task AddHistoryAsync(ReservationHistory history, CancellationToken cancellationToken = default)
     {
-        _ = await dbContext.ReservationHistories.AddAsync(history, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        dbContext.Entry(history).State = EntityState.Added;
+        return Task.CompletedTask;
     }
 
-    public async Task AddRefundAsync(Refund refund, CancellationToken cancellationToken = default)
+    public Task AddRefundAsync(Refund refund, CancellationToken cancellationToken = default)
     {
-        _ = await dbContext.Refunds.AddAsync(refund, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        dbContext.Entry(refund).State = EntityState.Added;
+        return Task.CompletedTask;
     }
 
     public Task UpdateRefundAsync(Refund refund, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        _ = dbContext.Refunds.Update(refund);
+        dbContext.Entry(refund).State = EntityState.Modified;
         return Task.CompletedTask;
     }
 
-    public async Task AddIncidentAsync(ReservationIncident incident, CancellationToken cancellationToken = default)
+    public Task AddIncidentAsync(ReservationIncident incident, CancellationToken cancellationToken = default)
     {
-        _ = await dbContext.ReservationIncidents.AddAsync(incident, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        dbContext.Entry(incident).State = EntityState.Added;
+        return Task.CompletedTask;
     }
 
     public Task UpdateIncidentAsync(ReservationIncident incident, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        _ = dbContext.ReservationIncidents.Update(incident);
+        dbContext.Entry(incident).State = EntityState.Modified;
         return Task.CompletedTask;
     }
 

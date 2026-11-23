@@ -111,20 +111,29 @@ public sealed class AvailabilityRepository(ApplicationDbContext dbContext) : IAv
             cancellationToken);
     }
 
-    public async Task AddAsync(Availability availability, CancellationToken cancellationToken = default)
+    public Task AddAsync(Availability availability, CancellationToken cancellationToken = default)
     {
-        _ = await dbContext.Availabilities.AddAsync(availability, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        dbContext.Entry(availability).State = EntityState.Added;
+        return Task.CompletedTask;
     }
 
     public Task AddRangeAsync(IEnumerable<Availability> availabilities, CancellationToken cancellationToken = default)
     {
-        return dbContext.Availabilities.AddRangeAsync(availabilities, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        List<Availability> snapshot = availabilities.ToList();
+        foreach (Availability availability in snapshot)
+        {
+            dbContext.Entry(availability).State = EntityState.Added;
+        }
+
+        return Task.CompletedTask;
     }
 
     public Task UpdateAsync(Availability availability, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        _ = dbContext.Availabilities.Update(availability);
+        dbContext.Entry(availability).State = EntityState.Modified;
         return Task.CompletedTask;
     }
 
@@ -200,9 +209,11 @@ public sealed class FavoriteRepository(ApplicationDbContext dbContext) : IFavori
             cancellationToken);
     }
 
-    public async Task AddAsync(Favorite favorite, CancellationToken cancellationToken = default)
+    public Task AddAsync(Favorite favorite, CancellationToken cancellationToken = default)
     {
-        _ = await dbContext.Favorites.AddAsync(favorite, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        dbContext.Entry(favorite).State = EntityState.Added;
+        return Task.CompletedTask;
     }
 
     public async Task RemoveAsync(Guid userId, Guid experienceId, CancellationToken cancellationToken = default)

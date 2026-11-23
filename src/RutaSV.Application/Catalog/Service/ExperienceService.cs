@@ -111,9 +111,6 @@ public sealed partial class ExperienceService(
             request.Images,
             now);
 
-        experience.Categories = experienceCategories;
-        experience.Images = experienceImages;
-
         if (request.PublishImmediately)
         {
             ValidateForPublication(experience, municipality, experienceCategories, experienceImages);
@@ -135,6 +132,9 @@ public sealed partial class ExperienceService(
                 await experienceRepository.AddImagesAsync(experienceImages, ct);
             }
         }, cancellationToken);
+
+        experience.Categories = experienceCategories;
+        experience.Images = experienceImages;
 
         return MapToDetailDto(experience);
     }
@@ -216,9 +216,6 @@ public sealed partial class ExperienceService(
             ValidateForPublication(experience, municipality, updatedCategories, updatedImages);
         }
 
-        experience.Categories = updatedCategories;
-        experience.Images = updatedImages;
-
         await experienceRepository.ExecuteInTransactionAsync(async ct =>
         {
             await experienceRepository.UpdateAsync(experience, ct);
@@ -233,6 +230,9 @@ public sealed partial class ExperienceService(
                 await experienceRepository.ReplaceImagesAsync(experience.Id, updatedImages, ct);
             }
         }, cancellationToken);
+
+        experience.Categories = updatedCategories;
+        experience.Images = updatedImages;
 
         return MapToDetailDto(experience);
     }
