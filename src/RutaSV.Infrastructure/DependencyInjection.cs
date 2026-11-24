@@ -55,7 +55,10 @@ public static class DependencyInjection
         // Agrega los servicios de seguridad y autenticación al contenedor de servicios.
         services.AddScoped<IJwtProvider, JwtProvider>();
         services.AddScoped<IGoogleAuthService, GoogleAuthService>();
-        services.AddScoped<IEmailService, SmtpEmailService>();
+        services.AddSingleton<IBackgroundEmailQueue, BackgroundEmailQueue>();
+        services.AddHostedService<BackgroundEmailWorker>();
+        services.AddScoped<SmtpEmailService>();
+        services.AddScoped<IEmailService>(sp => sp.GetRequiredService<SmtpEmailService>());
         services.AddScoped<IFileStorageService, MinioStorageService>();
 
         string? jwtSecret = configuration["Jwt:SecretKey"]; // Obtiene la clave secreta para la firma de tokens JWT desde la configuración.

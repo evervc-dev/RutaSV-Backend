@@ -15,7 +15,8 @@ public sealed class OperatorRequestService(
     IUserRepository userRepository,
     IValidator<CreateOperatorRequestRequest> createValidator,
     IValidator<GetOperatorRequestsQuery> getPagedValidator,
-    IValidator<ReviewOperatorRequestRequest> reviewValidator) : IOperatorRequestService
+    IValidator<ReviewOperatorRequestRequest> reviewValidator,
+    IEmailService? emailService = null) : IOperatorRequestService
 {
     public async Task<OperatorRequestDto> CreateAsync(
         Guid userId,
@@ -94,6 +95,18 @@ public sealed class OperatorRequestService(
                 await operatorRequestRepository.AddDocumentsAsync(documents, ct);
             }
         }, cancellationToken);
+
+        if (emailService is not null && !string.IsNullOrWhiteSpace(user.Email))
+        {
+            await emailService.SendNotificationEmailAsync(new EmailNotificationRequest(
+                user.Email,
+                user.FirstName,
+                NotificationType.SOLICITUD_OPERADOR_RECIBIDA,
+                $"Solicitud de operador recibida — {company.TradeName}",
+                $"<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\"><h2>¡Hola, {user.FirstName}!</h2><p>Recibimos tu solicitud para convertirte en operador turístico en <strong>RutaSV</strong> con la empresa <strong>{company.TradeName}</strong>.</p><p>Nuestro equipo administrativo la revisará pronto y te notificaremos por correo el resultado.</p></div>",
+                $"Recibimos tu solicitud de operador para {company.TradeName}. Te notificaremos por correo cuando sea revisada.",
+                UserId: user.Id), cancellationToken);
+        }
 
         return MapToDto(operatorRequest, user, company, documents);
     }
@@ -188,6 +201,18 @@ public sealed class OperatorRequestService(
             await operatorRequestRepository.UpdateAsync(operatorRequest, ct);
             await operatorRequestRepository.ReplaceDocumentsAsync(operatorRequest.Id, documents, ct);
         }, cancellationToken);
+
+        if (emailService is not null && !string.IsNullOrWhiteSpace(user.Email))
+        {
+            await emailService.SendNotificationEmailAsync(new EmailNotificationRequest(
+                user.Email,
+                user.FirstName,
+                NotificationType.SOLICITUD_OPERADOR_ACTUALIZADA,
+                $"Solicitud de operador actualizada — {company.TradeName}",
+                $"<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\"><h2>¡Hola, {user.FirstName}!</h2><p>Actualizamos tu solicitud de operador para <strong>{company.TradeName}</strong> y quedó nuevamente en estado <strong>PENDIENTE</strong> de revisión.</p></div>",
+                $"Tu solicitud de operador para {company.TradeName} fue actualizada y está en revisión.",
+                UserId: user.Id), cancellationToken);
+        }
 
         return MapToDto(operatorRequest, user, company, documents);
     }
@@ -290,6 +315,33 @@ public sealed class OperatorRequestService(
             await companyRepository.UpdateAsync(company, ct);
             await operatorRequestRepository.UpdateAsync(operatorRequest, ct);
         }, cancellationToken);
+
+        if (emailService is not null && !string.IsNullOrWhiteSpace(user.Email))
+        {
+            if (request.IsApproved)
+            {
+                await emailService.SendNotificationEmailAsync(new EmailNotificationRequest(
+                    user.Email,
+                    user.FirstName,
+                    NotificationType.SOLICITUD_OPERADOR_APROBADA,
+                    $"¡Solicitud aprobada! Ya eres operador en RutaSV — {company.TradeName}",
+                    $"<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\"><h2>¡Felicidades, {user.FirstName}!</h2><p>Tu solicitud de operador para <strong>{company.TradeName}</strong> ha sido <strong>APROBADA</strong>.</p><p>Ya puedes ingresar a tu Panel de Operador para publicar experiencias, administrar cupos y recibir reservas en RutaSV.</p></div>",
+                    $"¡Felicidades! Tu solicitud de operador para {company.TradeName} fue APROBADA. Ya puedes publicar experiencias en RutaSV.",
+                    UserId: user.Id), cancellationToken);
+            }
+            else
+            {
+                string reason = operatorRequest.RejectionReason ?? "Sin detalle adicional";
+                await emailService.SendNotificationEmailAsync(new EmailNotificationRequest(
+                    user.Email,
+                    user.FirstName,
+                    NotificationType.SOLICITUD_OPERADOR_RECHAZADA,
+                    $"Actualización de tu solicitud de operador — {company.TradeName}",
+                    $"<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\"><h2>Hola, {user.FirstName}</h2><p>Tu solicitud de operador para <strong>{company.TradeName}</strong> fue <strong>RECHAZADA</strong>.</p><p><strong>Motivo indicado por administración:</strong> {reason}</p><p>Puedes corregir los datos o documentos y volver a enviarla desde tu cuenta en RutaSV.</p></div>",
+                    $"Tu solicitud de operador para {company.TradeName} fue rechazada. Motivo: {reason}",
+                    UserId: user.Id), cancellationToken);
+            }
+        }
 
         return MapToDto(operatorRequest, user, company, operatorRequest.Documents);
     }

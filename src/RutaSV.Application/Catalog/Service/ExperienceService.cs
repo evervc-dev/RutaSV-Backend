@@ -9,6 +9,7 @@ using RutaSV.Application.Catalog.DTO;
 using RutaSV.Application.Catalog.Repository;
 using RutaSV.Application.Common.DTO;
 using RutaSV.Application.Identity.Repository;
+using RutaSV.Application.Identity.Service;
 using RutaSV.Domain.Bookings.Enum;
 using RutaSV.Domain.Catalog.Enum;
 using RutaSV.Domain.Catalog.Exception;
@@ -26,7 +27,8 @@ public sealed partial class ExperienceService(
     IValidator<UpdateExperienceRequest> updateValidator,
     IValidator<GetPublicExperiencesQuery> publicQueryValidator,
     IValidator<GetMyExperiencesQuery> myQueryValidator,
-    IReservationIncidentCoordinator? incidentCoordinator = null) : IExperienceService
+    IReservationIncidentCoordinator? incidentCoordinator = null,
+    IEmailService? emailService = null) : IExperienceService
 {
     private const decimal ElSalvadorMinLatitude = 13.0m;
     private const decimal ElSalvadorMaxLatitude = 14.6m;
@@ -96,9 +98,7 @@ public sealed partial class ExperienceService(
             AverageRating = 0m,
             TotalReviews = 0,
             CreatedAt = now,
-            UpdatedAt = now,
-            Company = company,
-            Municipality = municipality
+            UpdatedAt = now
         };
 
         List<ExperienceCategory> experienceCategories = BuildExperienceCategories(
@@ -133,8 +133,21 @@ public sealed partial class ExperienceService(
             }
         }, cancellationToken);
 
+        experience.Company = company;
+        experience.Municipality = municipality;
         experience.Categories = experienceCategories;
         experience.Images = experienceImages;
+
+        if (request.PublishImmediately)
+        {
+            await NotifyOperatorExperienceEventAsync(
+                experience,
+                NotificationType.EXPERIENCIA_PUBLICADA,
+                $"Experiencia publicada: {experience.Title}",
+                $"<p>¡Excelente noticia!</p><p>Tu experiencia <strong>{experience.Title}</strong> ya está publicada y visible para los turistas en <strong>RutaSV</strong>.</p>",
+                $"Tu experiencia '{experience.Title}' ya está publicada en RutaSV.",
+                cancellationToken);
+        }
 
         return MapToDetailDto(experience);
     }
@@ -196,7 +209,6 @@ public sealed partial class ExperienceService(
         experience.MinPeople = request.MinPeople;
         experience.MaxPeople = request.HasLimitedCapacity ? request.MaxPeople : null;
         experience.MunicipalityId = municipality.Id;
-        experience.Municipality = municipality;
         experience.ReferenceAddress = request.ReferenceAddress?.Trim();
         experience.Latitude = decimal.Round(request.Latitude, 6);
         experience.Longitude = decimal.Round(request.Longitude, 6);
@@ -231,6 +243,7 @@ public sealed partial class ExperienceService(
             }
         }, cancellationToken);
 
+        experience.Municipality = municipality;
         experience.Categories = updatedCategories;
         experience.Images = updatedImages;
 
@@ -278,6 +291,14 @@ public sealed partial class ExperienceService(
 
         await experienceRepository.UpdateAsync(experience, cancellationToken);
         await experienceRepository.SaveChangesAsync(cancellationToken);
+
+        await NotifyOperatorExperienceEventAsync(
+            experience,
+            NotificationType.EXPERIENCIA_PUBLICADA,
+            $"Experiencia publicada: {experience.Title}",
+            $"<p>Tu experiencia <strong>{experience.Title}</strong> ya está publicada y visible en el catálogo de RutaSV.</p>",
+            $"Tu experiencia '{experience.Title}' ya está publicada en RutaSV.",
+            cancellationToken);
 
         return MapToDetailDto(experience);
     }
@@ -340,6 +361,14 @@ public sealed partial class ExperienceService(
                 "La experiencia fue archivada por el operador.",
                 cancellationToken);
         }
+
+        await NotifyOperatorExperienceEventAsync(
+            experience,
+            NotificationType.EXPERIENCIA_ELIMINADA,
+            $"Experiencia archivada: {experience.Title}",
+            $"<p>Tu experiencia <strong>{experience.Title}</strong> ha sido archivada correctamente y dejó de mostrarse en el catálogo público.</p>",
+            $"Tu experiencia '{experience.Title}' fue archivada.",
+            cancellationToken);
     }
 
     public async Task<ExperienceDto> WithdrawAsync(
@@ -381,6 +410,14 @@ public sealed partial class ExperienceService(
                 cancellationToken);
         }
 
+        await NotifyOperatorExperienceEventAsync(
+            experience,
+            NotificationType.EXPERIENCIA_RETIRADA,
+            $"Experiencia retirada por moderación: {experience.Title}",
+            $"<p>Un administrador retiró temporalmente tu experiencia <strong>{experience.Title}</strong> del catálogo público.</p><p><strong>Motivo:</strong> {experience.WithdrawalReason}</p>",
+            $"Tu experiencia '{experience.Title}' fue retirada por moderación. Motivo: {experience.WithdrawalReason}",
+            cancellationToken);
+
         return MapToDetailDto(experience);
     }
 
@@ -407,7 +444,46 @@ public sealed partial class ExperienceService(
         await experienceRepository.UpdateAsync(experience, cancellationToken);
         await experienceRepository.SaveChangesAsync(cancellationToken);
 
+        await NotifyOperatorExperienceEventAsync(
+            experience,
+            NotificationType.EXPERIENCIA_RESTAURADA,
+            $"Experiencia restaurada: {experience.Title}",
+            $"<p>Tu experiencia <strong>{experience.Title}</strong> fue restaurada por administración y vuelve a estar visible en RutaSV.</p>",
+            $"Tu experiencia '{experience.Title}' fue restaurada en RutaSV.",
+            cancellationToken);
+
         return MapToDetailDto(experience);
+    }
+
+    private async Task NotifyOperatorExperienceEventAsync(
+        Experience experience,
+        NotificationType type,
+        string subject,
+        string htmlBody,
+        string textBody,
+        CancellationToken cancellationToken)
+    {
+        if (emailService is null)
+        {
+            return;
+        }
+
+        User? operatorUser = experience.Company?.Operator;
+        string? recipientEmail = operatorUser?.Email ?? experience.Company?.ContactEmail;
+        if (string.IsNullOrWhiteSpace(recipientEmail))
+        {
+            return;
+        }
+
+        await emailService.SendNotificationEmailAsync(new EmailNotificationRequest(
+            recipientEmail,
+            operatorUser?.FirstName ?? experience.Company?.TradeName ?? "Operador",
+            type,
+            subject,
+            htmlBody,
+            textBody,
+            UserId: operatorUser?.Id,
+            RequireVerifiedEmail: true), cancellationToken);
     }
 
     public async Task<ExperienceDto> RemoveImageAsync(

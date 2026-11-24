@@ -286,10 +286,7 @@ public sealed class ReservationService(
                 SpecialNotes = request.SpecialNotes?.Trim(),
                 ConfirmedAt = initialStatus == ReservationStatus.CONFIRMADA ? now : null,
                 CreatedAt = now,
-                UpdatedAt = now,
-                Experience = experience,
-                Availability = lockedAvailability,
-                Visitor = visitor
+                UpdatedAt = now
             };
 
             lockedAvailability.ReservedCapacity += request.PeopleCount;
@@ -314,12 +311,15 @@ public sealed class ReservationService(
                 CreatedAt = now
             };
 
-            createdReservation.History.Add(history);
-
             await availabilityRepository.UpdateAsync(lockedAvailability, ct);
             await reservationRepository.AddAsync(createdReservation, ct);
             await reservationRepository.AddHistoryAsync(history, ct);
             await reservationRepository.SaveChangesAsync(ct);
+
+            createdReservation.Experience = experience;
+            createdReservation.Availability = lockedAvailability;
+            createdReservation.Visitor = visitor;
+            createdReservation.History.Add(history);
         }, cancellationToken);
 
         await SendReservationCreatedEmailsAsync(createdReservation, experience, lockedAvailability, cancellationToken);
@@ -382,9 +382,7 @@ public sealed class ReservationService(
                 SpecialNotes = request.SpecialNotes?.Trim(),
                 ConfirmedAt = now,
                 CreatedAt = now,
-                UpdatedAt = now,
-                Experience = experience,
-                Availability = lockedAvailability
+                UpdatedAt = now
             };
 
             lockedAvailability.ReservedCapacity += request.PeopleCount;
@@ -407,12 +405,14 @@ public sealed class ReservationService(
                 CreatedAt = now
             };
 
-            createdReservation.History.Add(history);
-
             await availabilityRepository.UpdateAsync(lockedAvailability, ct);
             await reservationRepository.AddAsync(createdReservation, ct);
             await reservationRepository.AddHistoryAsync(history, ct);
             await reservationRepository.SaveChangesAsync(ct);
+
+            createdReservation.Experience = experience;
+            createdReservation.Availability = lockedAvailability;
+            createdReservation.History.Add(history);
         }, cancellationToken);
 
         if (!string.IsNullOrWhiteSpace(createdReservation.ContactEmail))
@@ -763,6 +763,20 @@ public sealed class ReservationService(
         await reservationRepository.AddHistoryAsync(history, cancellationToken);
         await reservationRepository.SaveChangesAsync(cancellationToken);
 
+        if (!string.IsNullOrWhiteSpace(reservation.ContactEmail))
+        {
+            string expTitle = reservation.Experience?.Title ?? "Experiencia RutaSV";
+            await emailService.SendNotificationEmailAsync(new EmailNotificationRequest(
+                reservation.ContactEmail,
+                reservation.ContactName,
+                NotificationType.RESERVA_COMPLETADA,
+                $"¡Gracias por vivir {expTitle} con RutaSV!",
+                $"<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\"><h2>¡Esperamos que hayas disfrutado la experiencia, {reservation.ContactName}!</h2><p>Tu reserva <strong>{reservation.ReservationCode}</strong> para <strong>{expTitle}</strong> fue marcada como <strong>COMPLETADA</strong>.</p></div>",
+                $"Tu reserva {reservation.ReservationCode} ({expTitle}) fue completada. ¡Gracias por viajar con RutaSV!",
+                UserId: reservation.VisitorId,
+                ReservationId: reservation.Id), cancellationToken);
+        }
+
         return MapToDto(reservation);
     }
 
@@ -836,7 +850,6 @@ public sealed class ReservationService(
             }
 
             reservation.AvailabilityId = targetAvailability.Id;
-            reservation.Availability = targetAvailability;
             reservation.PeopleCount = newPeopleCount;
             reservation.Total = decimal.Round(reservation.UnitPrice * newPeopleCount, 2);
             reservation.UpdatedAt = now;
@@ -854,11 +867,28 @@ public sealed class ReservationService(
                 CreatedAt = now
             };
 
-            reservation.History.Add(history);
             await reservationRepository.UpdateAsync(reservation, ct);
             await reservationRepository.AddHistoryAsync(history, ct);
             await reservationRepository.SaveChangesAsync(ct);
+
+            reservation.History.Add(history);
         }, cancellationToken);
+
+        reservation.Availability = targetAvailability;
+
+        if (!string.IsNullOrWhiteSpace(reservation.ContactEmail))
+        {
+            string expTitle = reservation.Experience?.Title ?? "Experiencia RutaSV";
+            await emailService.SendNotificationEmailAsync(new EmailNotificationRequest(
+                reservation.ContactEmail,
+                reservation.ContactName,
+                NotificationType.RESERVA_REAGENDADA,
+                $"Tu reserva {reservation.ReservationCode} fue reprogramada",
+                $"<p>Hola {reservation.ContactName},</p><p>El operador actualizó tu reserva <strong>{reservation.ReservationCode}</strong> para <strong>{expTitle}</strong>:</p><ul><li><strong>Nueva fecha:</strong> {targetAvailability.Date:yyyy-MM-dd} a las {targetAvailability.StartTime:HH:mm}</li><li><strong>Personas:</strong> {reservation.PeopleCount}</li><li><strong>Total:</strong> {BookingBusinessRules.FormatMoney(reservation.Total, reservation.Currency)}</li></ul>",
+                $"Tu reserva {reservation.ReservationCode} ({expTitle}) fue reprogramada para el {targetAvailability.Date:yyyy-MM-dd} a las {targetAvailability.StartTime:HH:mm} ({reservation.PeopleCount} personas).",
+                UserId: reservation.VisitorId,
+                ReservationId: reservation.Id), cancellationToken);
+        }
 
         return MapToDto(reservation);
     }
@@ -1254,9 +1284,7 @@ public sealed class ReservationService(
                 newSlot.UpdatedAt = now;
 
                 reservation.ExperienceId = newExp.Id;
-                reservation.Experience = newExp;
                 reservation.AvailabilityId = newSlot.Id;
-                reservation.Availability = newSlot;
                 reservation.Status = ReservationStatus.CONFIRMADA;
                 reservation.ConfirmedAt = now;
                 reservation.UpdatedAt = now;
@@ -1277,14 +1305,17 @@ public sealed class ReservationService(
                     CreatedAt = now
                 };
 
-                reservation.History.Add(history);
-
                 await availabilityRepository.UpdateAsync(newSlot, ct);
                 await reservationRepository.UpdateAsync(reservation, ct);
                 await reservationRepository.UpdateIncidentAsync(incident, ct);
                 await reservationRepository.AddHistoryAsync(history, ct);
                 await reservationRepository.SaveChangesAsync(ct);
+
+                reservation.History.Add(history);
             }, cancellationToken);
+
+            reservation.Experience = newExp;
+            reservation.Availability = newSlot;
 
             if (!string.IsNullOrWhiteSpace(reservation.ContactEmail))
             {
@@ -1297,6 +1328,22 @@ public sealed class ReservationService(
                     $"Tu reserva {reservation.ReservationCode} fue reagendada a {newExp.Title} el {newSlot.Date:yyyy-MM-dd} {newSlot.StartTime:HH:mm}.",
                     UserId: reservation.VisitorId,
                     ReservationId: reservation.Id), cancellationToken);
+            }
+
+            User? opUser = newExp.Company?.Operator;
+            string? opEmail = opUser?.Email ?? newExp.Company?.ContactEmail;
+            if (!string.IsNullOrWhiteSpace(opEmail))
+            {
+                await emailService.SendNotificationEmailAsync(new EmailNotificationRequest(
+                    opEmail,
+                    opUser?.FirstName ?? newExp.Company?.TradeName ?? "Operador",
+                    NotificationType.RESERVA_REAGENDADA,
+                    $"Reserva {reservation.ReservationCode} reagendada por el visitante",
+                    $"<p>El visitante <strong>{reservation.ContactName}</strong> reagendó la reserva <strong>{reservation.ReservationCode}</strong> a <strong>{newExp.Title}</strong> el {newSlot.Date:yyyy-MM-dd} a las {newSlot.StartTime:HH:mm} ({reservation.PeopleCount} personas).</p>",
+                    $"Reserva {reservation.ReservationCode} reagendada a {newExp.Title} ({newSlot.Date:yyyy-MM-dd} {newSlot.StartTime:HH:mm}).",
+                    UserId: opUser?.Id,
+                    ReservationId: reservation.Id,
+                    RequireVerifiedEmail: true), cancellationToken);
             }
 
             return MapToDto(reservation);

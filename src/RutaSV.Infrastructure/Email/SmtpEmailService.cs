@@ -15,7 +15,8 @@ namespace RutaSV.Infrastructure.Email;
 
 public sealed class SmtpEmailService(
     IConfiguration configuration,
-    ApplicationDbContext? dbContext = null) : IEmailService
+    ApplicationDbContext? dbContext = null,
+    IBackgroundEmailQueue? backgroundEmailQueue = null) : IEmailService
 {
     public async Task SendVerificationEmailAsync(
         string recipientEmail,
@@ -92,7 +93,25 @@ public sealed class SmtpEmailService(
         }
     }
 
-    public async Task SendNotificationEmailAsync(
+    public Task SendNotificationEmailAsync(
+        EmailNotificationRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.RecipientEmail))
+        {
+            return Task.CompletedTask;
+        }
+
+        if (backgroundEmailQueue is not null)
+        {
+            backgroundEmailQueue.Enqueue(request);
+            return Task.CompletedTask;
+        }
+
+        return DeliverNotificationNowAsync(request, cancellationToken);
+    }
+
+    public async Task DeliverNotificationNowAsync(
         EmailNotificationRequest request,
         CancellationToken cancellationToken = default)
     {
